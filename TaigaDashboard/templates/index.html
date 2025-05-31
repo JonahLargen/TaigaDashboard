@@ -2,8 +2,24 @@
 <html>
 <head>
     <title>My Flask Web Page</title>
+    <style>
+        pre {
+            background: #f4f4f4;
+            border: 1px solid #ddd;
+            padding: 1em;
+            overflow-x: auto;
+        }
+    </style>
 </head>
 <body>
-    <h1>Hello from Flask in Visual Studio!</h1>
+    <h1>Hello from Flask in Visual Studio!!</h1>
+    <h2>Epics (Raw JSON):</h2>
+    <pre>{{ epics_json }}</pre>
+    <h2>User Stories (Raw JSON):</h2>
+    <pre>{{ userstories_json }}</pre>
+    <h2>Tasks (Raw JSON):</h2>
+    <pre>{{ tasks_json }}</pre>
+    <h2>Issues (Raw JSON):</h2>
+    <pre>{{ issues_json }}</pre>
 </body>
 </html>

@@ -12,9 +12,11 @@
     <Name>TaigaDashboard</Name>
     <RootNamespace>TaigaDashboard</RootNamespace>
     <LaunchProvider>Web launcher</LaunchProvider>
-    <WebBrowserUrl>http://127.0.0.1</WebBrowserUrl>
-    <WebBrowserPort>5000</WebBrowserPort>
+    <WebBrowserUrl>http://127.0.0.1:5000</WebBrowserUrl>
+    <WebBrowserPort>
+    </WebBrowserPort>
     <InterpreterId>MSBuild|venv|$(MSBuildProjectFullPath)</InterpreterId>
+    <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -26,6 +28,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="app\taiga_client.py" />
+    <Compile Include="app\taiga_factory.py" />
     <Compile Include="TaigaDashboard.py" />
   </ItemGroup>
   <ItemGroup>
@@ -33,6 +36,7 @@
     <Folder Include="templates\" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include=".env" />
     <Content Include="requirements.txt" />
     <Content Include="templates\index.html" />
   </ItemGroup>

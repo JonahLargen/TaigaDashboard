@@ -5,68 +5,99 @@ import time
 
 
 class TaigaClient:
-    def __init__(self, base_url, username, password):
+    def __init__(self, base_url, username, password, projectid):
         self.base_url = base_url.rstrip("/")
         self.session = requests.Session()
         self.username = username
         self.password = password
+        self.projectid = projectid
         self.auth_token = None
-        self.refresh_token = None
-
-    def is_authenticated(self):
-        if self.auth_token is None:
-            return False
-        if self.is_token_expired(self.auth_token):
-            return False
-
-        return True
+        self.is_authenticated = False
 
     def authenticate(self):
         """Authenticate the user and store the session cookie."""
-        if self.refresh_token is not None and not self.is_token_expired(self.refresh_token):
-            url = f"{self.base_url}/api/v1/auth/refresh"
-            json_payload = {"refresh": self.refresh_token}
-            headers = {"Content-Type": "application/json"}
-            response = self.session.post(url, json=json_payload, headers=headers)
-            response.raise_for_status()
-            data = response.json()
-        else:
-            url = f"{self.base_url}/api/v1/auth"
-            json_payload = {
-                "username": self.username,
-                "password": self.password,
-                "type": "normal",
-            }
-            headers = {"Content-Type": "application/json"}
-            response = self.session.post(url, json=json_payload, headers=headers)
-            response.raise_for_status()
-            data = response.json()
+        url = f"{self.base_url}/api/v1/auth"
+        json_payload = {
+            "username": self.username,
+            "password": self.password,
+            "type": "normal",
+        }
+        headers = {"Content-Type": "application/json"}
+        print(f"Authenticating with URL: {url}")  # Debugging line to check the URL
+        response = self.session.post(url, json=json_payload, headers=headers)
+        response.raise_for_status()
+        print("Authentication response received.")
+        data = response.json()
 
         self.auth_token = data.get("auth_token")
-        self.refresh_token = data.get("refresh")
 
-        if not self.auth_token or not self.refresh_token:
+        print("Auth Token:")  # Debugging line to check the response
+        print(self.auth_token)  # Debugging line to check the auth token
+
+        if not self.auth_token:
             raise ValueError("Authentication failed. Please check your credentials.")
 
         self.session.headers.update({"Authorization": f"Bearer {self.auth_token}"})
-
-    def is_token_expired(self, token):
-        """Check if a token (JWT) is expired. Supports JWT tokens only."""
-        try:
-            # JWTs have 3 parts separated by '.', get the payload
-            parts = token.split(".")
-            if len(parts) != 3:
-                return False  # Not a JWT, can't check
-            payload_b64 = parts[1] + "=" * (-len(parts[1]) % 4)  # pad base64
-            payload = json.loads(base64.urlsafe_b64decode(payload_b64).decode("utf-8"))
-            exp = payload.get("exp")
-            if exp is None:
-                return False  # No exp claim, assume not expired
-            return exp < int(time.time())
-        except Exception:
-            return False
+        self.is_authenticated = True
 
     def ensure_authenticated(self):
-        """Ensure the user is authenticated, re-authenticate if necessary."""
-        if not self.is_authenticated():
+        """Ensure the user is authenticated."""
+        print("Ensuring authentication...")  # Debugging line to check authentication status)
+        if not self.is_authenticated:
+            print("Not authenticated, attempting to authenticate...")
             self.authenticate()
+            print("Authentication successful.")  # Debugging line to confirm authentication
+        else:
+            print("Already authenticated.")  # Debugging line to confirm already authenticated
+
+    def get_epics(self):
+        """
+        Retrieve all epics for the configured project.
+        Returns: List of epic dicts.
+        """
+        self.ensure_authenticated()
+        url = f"{self.base_url}/api/v1/epics?project={self.projectid}"
+        print(f"Fetching epics from: {url}")  # Debugging line to check the URL
+        response = self.session.get(url)
+        response.raise_for_status()
+        print("Epics fetched successfully.")
+        return response.json()
+
+    def get_stories(self):
+        """
+        Retrieve all stories for the configured project.
+        Returns: List of story dicts.
+        """
+        self.ensure_authenticated()
+        url = f"{self.base_url}/api/v1/userstories?project={self.projectid}"
+        print(f"Fetching user stories from: {url}")  # Debugging line to check the URL
+        response = self.session.get(url)
+        response.raise_for_status()
+        print("User stories fetched successfully.")
+        return response.json()
+
+    def get_tasks(self):
+        """
+        Retrieve all tasks for the configured project.
+        Returns: List of task dicts.
+        """
+        self.ensure_authenticated()
+        url = f"{self.base_url}/api/v1/tasks?project={self.projectid}"
+        print(f"Fetching tasks from: {url}")  # Debugging line to check the URL
+        response = self.session.get(url)
+        response.raise_for_status()
+        print("Tasks fetched successfully.")
+        return response.json()
+
+    def get_issues(self):
+        """
+        Retrieve all issues for the configured project.
+        Returns: List of issue dicts.
+        """
+        self.ensure_authenticated()
+        url = f"{self.base_url}/api/v1/issues?project={self.projectid}"
+        print(f"Fetching issues from: {url}")  # Debugging line to check the URL
+        response = self.session.get(url)
+        response.raise_for_status()
+        print("Issues fetched successfully.")
+        return response.json()
