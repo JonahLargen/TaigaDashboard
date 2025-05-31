@@ -1,7 +1,8 @@
 <!doctype html>
 <html>
 <head>
-    <title>My Flask Web Page</title>
+    <title>Taiga Dashboard</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='taiga_logo.png') }}">
     <style>
         pre {
             background: #f4f4f4;
@@ -9,10 +10,15 @@
             padding: 1em;
             overflow-x: auto;
         }
+
+        h1, h2 {
+            text-align: center;
+        }
     </style>
 </head>
 <body>
     <h1>Taiga Dashboard</h1>
+    <h2>{{ project_name }}</h2>
     <div>
         {{ epic_progress_bar_html|safe }}
     </div>
@@ -29,5 +35,7 @@
     <pre>{{ issues_json }}</pre>
     <h2>Sprints (Raw JSON):</h2>
     <pre>{{ sprints_json }}</pre>
+    <h2>Project (Raw JSON):</h2>
+    <pre>{{ project_json }}</pre>
 </body>
 </html>

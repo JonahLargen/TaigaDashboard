@@ -117,3 +117,16 @@ class TaigaClient:
         response.raise_for_status()
         print("Sprints fetched successfully.")
         return response.json()
+
+    def get_project(self):
+        """
+        Retrieve the project information.
+        Returns: Project details.
+        """
+        self.ensure_authenticated()
+        url = f"{self.base_url}/api/v1/projects/{self.projectid}"
+        print(f"Fetching project from: {url}")  # Debugging line to check the URL
+        response = self.session.get(url)
+        response.raise_for_status()
+        print("Project fetched successfully.")
+        return response.json()

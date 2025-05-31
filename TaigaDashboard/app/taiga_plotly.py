@@ -2,8 +2,17 @@ import plotly.graph_objs as go
 import plotly
 import os
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 
+def get_int_from_env(var_name, default=0):
+    """Read an integer value from env, or return default."""
+    value = os.getenv(var_name)
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        return default
 
 def get_statuses_from_env(var_name, default=None):
     """Read a comma-separated status list from env, return as a set of lowercased strings."""
@@ -12,11 +21,25 @@ def get_statuses_from_env(var_name, default=None):
         return set(default or [])
     return set(v.strip().lower() for v in value.split(",") if v.strip())
 
+EPIC_DAYS_AFTER_CLOSE = get_int_from_env("EPIC_DAYS_AFTER_CLOSE", 14)
+USER_STORY_DONE_STATUSES = get_statuses_from_env("USER_STORY_DONE_STATUSES", ["new"])
+USER_STORY_IN_PROGRESS_STATUSES = get_statuses_from_env("USER_STORY_IN_PROGRESS_STATUSES", ["in progress"])
+USER_STORY_NEW_STATUSES = get_statuses_from_env("USER_STORY_NEW_STATUSES", ["done"])
 
-DONE_STATUSES = get_statuses_from_env("USER_STORY_DONE_STATUSES", [])
-IN_PROGRESS_STATUSES = get_statuses_from_env("USER_STORY_IN_PROGRESS_STATUSES", [])
-NEW_STATUSES = get_statuses_from_env("USER_STORY_NEW_STATUSES", [])
 
+def filter_relevant_epics(epics, now=None):
+    """Return only epics that are open, or closed but modified within N days."""
+    now = now or datetime.utcnow()
+    cutoff = now - timedelta(days=EPIC_DAYS_AFTER_CLOSE)
+    relevant = []
+    for epic in epics:
+        if not epic.get("is_closed", False):
+            relevant.append(epic)
+        else:
+            modified = datetime.strptime(epic["modified_date"], "%Y-%m-%dT%H:%M:%S.%fZ")
+            if modified >= cutoff:
+                relevant.append(epic)
+    return relevant
 
 def get_epic_progress_html(epics, userstories):
     """
@@ -27,6 +50,8 @@ def get_epic_progress_html(epics, userstories):
     - Gray: percent Not Started
     Also displays: epic status, total stories, and story counts per section.
     """
+    # Filter epics to only those that are relevant (not closed or recently modified)
+    epics = filter_relevant_epics(epics)
 
     # Map epic id to epic name for ordering and display
     epic_id_to_name = {epic["id"]: epic["subject"] for epic in epics}
@@ -62,11 +87,11 @@ def get_epic_progress_html(epics, userstories):
         new_count = 0  # not used for bar color, but available for future
         for s in stories:
             status = (s.get("status_extra_info", {}).get("name") or "").strip().lower()
-            if status in DONE_STATUSES:
+            if status in USER_STORY_DONE_STATUSES:
                 done_count += 1
-            elif status in IN_PROGRESS_STATUSES:
+            elif status in USER_STORY_IN_PROGRESS_STATUSES:
                 in_progress_count += 1
-            elif status in NEW_STATUSES:
+            elif status in USER_STORY_NEW_STATUSES:
                 new_count += 1
         not_started_count = total - done_count - in_progress_count
 
@@ -266,9 +291,9 @@ def get_user_story_status_breakdown_html(userstories, sprints):
         if group_id not in sprint_id_to_obj and group_id is not None:
             continue
         status_raw = (us.get("status_extra_info", {}).get("name") or "").strip().lower()
-        if status_raw in DONE_STATUSES:
+        if status_raw in USER_STORY_DONE_STATUSES:
             group_counts[group_id]["Done"] += 1
-        elif status_raw in IN_PROGRESS_STATUSES:
+        elif status_raw in USER_STORY_IN_PROGRESS_STATUSES:
             group_counts[group_id]["In Progress"] += 1
         else:
             group_counts[group_id]["Not Started"] += 1
