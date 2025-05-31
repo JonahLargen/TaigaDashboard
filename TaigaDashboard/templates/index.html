@@ -16,6 +16,9 @@
     <div>
         {{ epic_progress_bar_html|safe }}
     </div>
+    <div>
+        {{ user_story_status_breakdown_html|safe }}
+    </div>
     <h2>Epics (Raw JSON):</h2>
     <pre>{{ epics_json }}</pre>
     <h2>User Stories (Raw JSON):</h2>
@@ -24,5 +27,7 @@
     <pre>{{ tasks_json }}</pre>
     <h2>Issues (Raw JSON):</h2>
     <pre>{{ issues_json }}</pre>
+    <h2>Sprints (Raw JSON):</h2>
+    <pre>{{ sprints_json }}</pre>
 </body>
 </html>

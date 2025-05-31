@@ -104,3 +104,16 @@ class TaigaClient:
         response.raise_for_status()
         print("Issues fetched successfully.")
         return response.json()
+
+    def get_sprints(self):
+        """
+        Retrieve all sprints/milestones for the configured project.
+        Returns: List of issue dicts.
+        """
+        self.ensure_authenticated()
+        url = f"{self.base_url}/api/v1/milestones?project={self.projectid}"
+        print(f"Fetching sprints from: {url}")  # Debugging line to check the URL
+        response = self.session.get(url)
+        response.raise_for_status()
+        print("Sprints fetched successfully.")
+        return response.json()
