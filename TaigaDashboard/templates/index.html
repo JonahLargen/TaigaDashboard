@@ -12,7 +12,10 @@
     </style>
 </head>
 <body>
-    <h1>Hello from Flask in Visual Studio!!</h1>
+    <h1>Taiga Dashboard</h1>
+    <div>
+        {{ epic_progress_bar_html|safe }}
+    </div>
     <h2>Epics (Raw JSON):</h2>
     <pre>{{ epics_json }}</pre>
     <h2>User Stories (Raw JSON):</h2>

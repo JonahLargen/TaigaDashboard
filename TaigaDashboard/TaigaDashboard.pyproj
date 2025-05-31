@@ -29,6 +29,7 @@
   <ItemGroup>
     <Compile Include="app\taiga_client.py" />
     <Compile Include="app\taiga_factory.py" />
+    <Compile Include="app\taiga_plotly.py" />
     <Compile Include="TaigaDashboard.py" />
   </ItemGroup>
   <ItemGroup>
@@ -43,8 +44,8 @@
   <ItemGroup>
     <Interpreter Include="venv\">
       <Id>venv</Id>
-      <Version>3.9</Version>
-      <Description>venv (Python 3.9 (64-bit))</Description>
+      <Version>3.13</Version>
+      <Description>venv (Python 3.13)</Description>
       <InterpreterPath>Scripts\python.exe</InterpreterPath>
       <WindowsInterpreterPath>Scripts\pythonw.exe</WindowsInterpreterPath>
       <PathEnvironmentVariable>PYTHONPATH</PathEnvironmentVariable>

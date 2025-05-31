@@ -1,7 +1,4 @@
 import requests
-import base64
-import json
-import time
 
 
 class TaigaClient:
@@ -42,13 +39,19 @@ class TaigaClient:
 
     def ensure_authenticated(self):
         """Ensure the user is authenticated."""
-        print("Ensuring authentication...")  # Debugging line to check authentication status)
+        print(
+            "Ensuring authentication..."
+        )  # Debugging line to check authentication status)
         if not self.is_authenticated:
             print("Not authenticated, attempting to authenticate...")
             self.authenticate()
-            print("Authentication successful.")  # Debugging line to confirm authentication
+            print(
+                "Authentication successful."
+            )  # Debugging line to confirm authentication
         else:
-            print("Already authenticated.")  # Debugging line to confirm already authenticated
+            print(
+                "Already authenticated."
+            )  # Debugging line to confirm already authenticated
 
     def get_epics(self):
         """
