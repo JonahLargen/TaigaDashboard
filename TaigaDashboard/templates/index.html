@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html>
 <head>
     <title>Taiga Dashboard</title>
@@ -14,7 +14,76 @@
         h1, h2 {
             text-align: center;
         }
+
+        .code-block-container {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: #f8f8f8;
+            font-family: Menlo, Monaco, "Consolas", "Liberation Mono", "Courier New", monospace;
+            margin-bottom: 1em;
+        }
+
+        .code-block-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f0f0f0;
+            padding: 8px 12px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+            .code-block-header .toggle-btn {
+                font-weight: bold;
+                margin-right: 8px;
+            }
+
+            .code-block-header .copy-btn {
+                background: #eee;
+                border: 1px solid #ccc;
+                border-radius: 3px;
+                padding: 2px 8px;
+                font-size: 0.95em;
+                cursor: pointer;
+            }
+
+                .code-block-header .copy-btn:hover {
+                    background: #e0e0e0;
+                }
+
+        .code-block-content {
+            padding: 12px;
+            overflow-x: auto;
+            background: #fafbfc;
+        }
+
+            .code-block-content.collapsed {
+                display: none;
+            }
     </style>
+
+    <script>
+        function toggleCodeBlock(headerElem) {
+            const codeBlock = headerElem.parentElement.querySelector('.code-block-content');
+            const toggleBtn = headerElem.querySelector('.toggle-btn');
+            if (codeBlock.classList.contains('collapsed')) {
+                codeBlock.classList.remove('collapsed');
+                toggleBtn.textContent = '▼';
+            } else {
+                codeBlock.classList.add('collapsed');
+                toggleBtn.textContent = '►';
+            }
+        }
+
+        function copyCodeBlock(btn) {
+            const codeBlock = btn.closest('.code-block-container').querySelector('.code-block-content');
+            const text = codeBlock.innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                btn.textContent = 'Copied!';
+                setTimeout(() => { btn.textContent = 'Copy'; }, 1200);
+            });
+        }
+    </script>
 </head>
 <body>
     <h1>Taiga Dashboard</h1>
@@ -25,17 +94,71 @@
     <div>
         {{ user_story_status_breakdown_html|safe }}
     </div>
-    <h2>Epics (Raw JSON):</h2>
-    <pre>{{ epics_json }}</pre>
-    <h2>User Stories (Raw JSON):</h2>
-    <pre>{{ userstories_json }}</pre>
-    <h2>Tasks (Raw JSON):</h2>
-    <pre>{{ tasks_json }}</pre>
-    <h2>Issues (Raw JSON):</h2>
-    <pre>{{ issues_json }}</pre>
-    <h2>Sprints (Raw JSON):</h2>
-    <pre>{{ sprints_json }}</pre>
-    <h2>Project (Raw JSON):</h2>
-    <pre>{{ project_json }}</pre>
+
+    <div class="code-block-container">
+        <div class="code-block-header" onclick="toggleCodeBlock(this)">
+            <span>
+                <span class="toggle-btn">►</span>
+                Epics
+            </span>
+            <button class="copy-btn" onclick="event.stopPropagation(); copyCodeBlock(this)">Copy</button>
+        </div>
+        <pre class="code-block-content collapsed" id="epics_json">{{ epics_json }}</pre>
+    </div>
+
+    <div class="code-block-container">
+        <div class="code-block-header" onclick="toggleCodeBlock(this)">
+            <span>
+                <span class="toggle-btn">►</span>
+                User Stories
+            </span>
+            <button class="copy-btn" onclick="event.stopPropagation(); copyCodeBlock(this)">Copy</button>
+        </div>
+        <pre class="code-block-content collapsed" id="userstories-json">{{ userstories_json }}</pre>
+    </div>
+
+    <div class="code-block-container">
+        <div class="code-block-header" onclick="toggleCodeBlock(this)">
+            <span>
+                <span class="toggle-btn">►</span>
+                Tasks
+            </span>
+            <button class="copy-btn" onclick="event.stopPropagation(); copyCodeBlock(this)">Copy</button>
+        </div>
+        <pre class="code-block-content collapsed" id="tasks-json">{{ tasks_json }}</pre>
+    </div>
+
+    <div class="code-block-container">
+        <div class="code-block-header" onclick="toggleCodeBlock(this)">
+            <span>
+                <span class="toggle-btn">►</span>
+                Issues
+            </span>
+            <button class="copy-btn" onclick="event.stopPropagation(); copyCodeBlock(this)">Copy</button>
+        </div>
+        <pre class="code-block-content collapsed" id="issues-json">{{ issues_json }}</pre>
+    </div>
+
+    <div class="code-block-container">
+        <div class="code-block-header" onclick="toggleCodeBlock(this)">
+            <span>
+                <span class="toggle-btn">►</span>
+                Sprints
+            </span>
+            <button class="copy-btn" onclick="event.stopPropagation(); copyCodeBlock(this)">Copy</button>
+        </div>
+        <pre class="code-block-content collapsed" id="sprints-json">{{ sprints_json }}</pre>
+    </div>
+
+    <div class="code-block-container">
+        <div class="code-block-header" onclick="toggleCodeBlock(this)">
+            <span>
+                <span class="toggle-btn">►</span>
+                Project
+            </span>
+            <button class="copy-btn" onclick="event.stopPropagation(); copyCodeBlock(this)">Copy</button>
+        </div>
+        <pre class="code-block-content collapsed" id="project-json">{{ project_json }}</pre>
+    </div>
 </body>
 </html>
