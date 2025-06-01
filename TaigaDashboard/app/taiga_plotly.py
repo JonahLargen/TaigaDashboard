@@ -290,7 +290,7 @@ def classify_sprints(sprints, today=None):
     return active, future, completed
 
 
-def filter_sprints_for_chart(sprints, num_future=1, num_completed=1):
+def filter_sprints_for_chart(sprints, num_future, num_completed):
     active, future, completed = classify_sprints(sprints)
     # For chart: all active, N future, N completed
     show_sprints = []
@@ -334,9 +334,7 @@ def get_user_story_status_breakdown_html(userstories, sprints):
       - Sprint label: name\nYYYY-MM-DD to YYYY-MM-DD\nStatus
     """
     # Filter sprints to active, next, most recent completed
-    show_sprints, show_sprint_ids = filter_sprints_for_chart(
-        sprints, num_future=1, num_completed=1
-    )
+    show_sprints, show_sprint_ids = filter_sprints_for_chart(sprints, 1, 2)
     today = datetime.utcnow().date()
     # Build mapping: sprint id -> sprint object
     sprint_id_to_obj = {s["id"]: s for s in show_sprints}
