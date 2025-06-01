@@ -3,6 +3,8 @@ import plotly
 import os
 from collections import defaultdict
 from datetime import datetime, timedelta
+import pandas as pd
+
 
 def get_int_from_env(var_name, default=0):
     """Read an integer value from env, or return default."""
@@ -14,6 +16,7 @@ def get_int_from_env(var_name, default=0):
     except ValueError:
         return default
 
+
 def get_statuses_from_env(var_name, default=None):
     """Read a comma-separated status list from env, return as a set of lowercased strings."""
     value = os.getenv(var_name)
@@ -21,10 +24,29 @@ def get_statuses_from_env(var_name, default=None):
         return set(default or [])
     return set(v.strip().lower() for v in value.split(",") if v.strip())
 
+
 EPIC_DAYS_AFTER_CLOSE = get_int_from_env("EPIC_DAYS_AFTER_CLOSE", 14)
-USER_STORY_DONE_STATUSES = get_statuses_from_env("USER_STORY_DONE_STATUSES", ["new"])
-USER_STORY_IN_PROGRESS_STATUSES = get_statuses_from_env("USER_STORY_IN_PROGRESS_STATUSES", ["in progress"])
-USER_STORY_NEW_STATUSES = get_statuses_from_env("USER_STORY_NEW_STATUSES", ["done"])
+USER_STORY_DAYS_AFTER_CLOSE = get_int_from_env("USER_STORY_DAYS_AFTER_CLOSE", 14)
+TASK_DAYS_AFTER_CLOSE = get_int_from_env("TASK_DAYS_AFTER_CLOSE", 14)
+ISSUE_DAYS_AFTER_CLOSE = get_int_from_env("ISSUE_DAYS_AFTER_CLOSE", 14)
+
+USER_STORY_DONE_STATUSES = get_statuses_from_env("USER_STORY_DONE_STATUSES", ["done"])
+USER_STORY_IN_PROGRESS_STATUSES = get_statuses_from_env(
+    "USER_STORY_IN_PROGRESS_STATUSES", ["in progress"]
+)
+USER_STORY_NEW_STATUSES = get_statuses_from_env("USER_STORY_NEW_STATUSES", ["new"])
+
+TASK_DONE_STATUSES = get_statuses_from_env("TASK_DONE_STATUSES", ["done"])
+TASK_IN_PROGRESS_STATUSES = get_statuses_from_env(
+    "TASK_IN_PROGRESS_STATUSES", ["in progress"]
+)
+TASK_NEW_STATUSES = get_statuses_from_env("TASK_NEW_STATUSES", ["new"])
+
+ISSUE_DONE_STATUSES = get_statuses_from_env("ISSUE_DONE_STATUSES", ["done"])
+ISSUE_IN_PROGRESS_STATUSES = get_statuses_from_env(
+    "ISSUE_IN_PROGRESS_STATUSES", ["in progress"]
+)
+ISSUE_NEW_STATUSES = get_statuses_from_env("ISSUE_NEW_STATUSES", ["new"])
 
 
 def filter_relevant_epics(epics, now=None):
@@ -40,6 +62,79 @@ def filter_relevant_epics(epics, now=None):
             if modified >= cutoff:
                 relevant.append(epic)
     return relevant
+
+
+def filter_relevant_issues(issues, now=None):
+    """Return only issues that are open, or closed and completed within N days."""
+    now = now or datetime.utcnow()
+    cutoff = now - timedelta(days=ISSUE_DAYS_AFTER_CLOSE)
+    relevant = []
+    for issue in issues:
+        # 'is_closed' should be True/False in Taiga data
+        if not issue.get("is_closed", False):
+            relevant.append(issue)
+        else:
+            # Check finished_date; fallback to modified_date if not set
+            finished = (
+                issue.get("finished_date")
+                or issue.get("modified_date")
+                or issue.get("created_date")
+            )
+            # Handle both with and without microseconds
+            try:
+                dt = datetime.strptime(finished, "%Y-%m-%dT%H:%M:%S.%fZ")
+            except ValueError:
+                dt = datetime.strptime(finished, "%Y-%m-%dT%H:%M:%SZ")
+            if dt >= cutoff:
+                relevant.append(issue)
+    return relevant
+
+
+def filter_relevant_userstories(stories, now=None):
+    """Return only user stories that are open, or closed and completed within N days."""
+    now = now or datetime.utcnow()
+    cutoff = now - timedelta(days=USER_STORY_DAYS_AFTER_CLOSE)
+    relevant = []
+    for story in stories:
+        if not story.get("is_closed", False):
+            relevant.append(story)
+        else:
+            finished = (
+                story.get("finish_date")
+                or story.get("modified_date")
+                or story.get("created_date")
+            )
+            try:
+                dt = datetime.strptime(finished, "%Y-%m-%dT%H:%M:%S.%fZ")
+            except ValueError:
+                dt = datetime.strptime(finished, "%Y-%m-%dT%H:%M:%SZ")
+            if dt >= cutoff:
+                relevant.append(story)
+    return relevant
+
+
+def filter_relevant_tasks(tasks, now=None):
+    """Return only tasks that are open, or closed and completed within N days."""
+    now = now or datetime.utcnow()
+    cutoff = now - timedelta(days=TASK_DAYS_AFTER_CLOSE)
+    relevant = []
+    for task in tasks:
+        if not task.get("is_closed", False):
+            relevant.append(task)
+        else:
+            finished = (
+                task.get("finished_date")
+                or task.get("modified_date")
+                or task.get("created_date")
+            )
+            try:
+                dt = datetime.strptime(finished, "%Y-%m-%dT%H:%M:%S.%fZ")
+            except ValueError:
+                dt = datetime.strptime(finished, "%Y-%m-%dT%H:%M:%SZ")
+            if dt >= cutoff:
+                relevant.append(task)
+    return relevant
+
 
 def get_epic_progress_html(epics, userstories):
     """
@@ -348,3 +443,144 @@ def get_user_story_status_breakdown_html(userstories, sprints):
     )
     fig = go.Figure(data=traces, layout=layout)
     return plotly.io.to_html(fig, include_plotlyjs="cdn", full_html=False)
+
+
+def get_task_assignment_heatmap_html(
+    users, userstories, tasks, issues, column_metric="status"
+):
+    """
+    Returns an HTML div containing a Plotly assignment heatmap based on users, userstories, tasks, and issues.
+    Assumes *_STATUSES variables are defined in the outer scope.
+    """
+
+    # Filter relevant items
+    userstories = filter_relevant_userstories(userstories)
+    tasks = filter_relevant_tasks(tasks)
+    issues = filter_relevant_issues(issues)
+
+    # --- Build user lookup ---
+    user_lookup = {
+        u["id"]: u.get("full_name_display") or u.get("full_name") or u.get("username")
+        for u in users
+    }
+    user_lookup[None] = "Unassigned"
+
+    # --- Helper to get assignee name ---
+    def get_assignee(obj):
+        assignee_id = obj.get("assigned_to")
+        return user_lookup.get(assignee_id, "Unassigned")
+
+    # --- Helper to get status or priority ---
+    def get_status(obj):
+        info = obj.get("status_extra_info")
+        if info and isinstance(info, dict):
+            return info.get("name", "Unknown")
+        return str(obj.get("status", "Unknown"))
+
+    def get_priority(obj):
+        info = obj.get("priority_extra_info")
+        if info and isinstance(info, dict):
+            return info.get("name", "Normal")
+        return str(obj.get("priority", "Normal"))
+
+    # --- Mapping to Not Started, In Progress, Done ---
+    def map_to_bucket(status, done, in_progress, not_started):
+        s = str(status).strip().lower()
+        if s in [d.lower() for d in done]:
+            return "Done"
+        elif s in [p.lower() for p in in_progress]:
+            return "In Progress"
+        elif s in [n.lower() for n in not_started]:
+            return "Not Started"
+        else:
+            return "Not Started"
+
+    # --- Flatten all items to assignee/metric ---
+    items = []
+    for us in userstories:
+        assignee = get_assignee(us)
+        status_val = get_status(us) if column_metric == "status" else get_priority(us)
+        bucket = (
+            map_to_bucket(
+                status_val,
+                USER_STORY_DONE_STATUSES,
+                USER_STORY_IN_PROGRESS_STATUSES,
+                USER_STORY_NEW_STATUSES,
+            )
+            if column_metric == "status"
+            else status_val
+        )
+        items.append((assignee, bucket))
+    for t in tasks:
+        assignee = get_assignee(t)
+        status_val = get_status(t) if column_metric == "status" else get_priority(t)
+        bucket = (
+            map_to_bucket(
+                status_val,
+                TASK_DONE_STATUSES,
+                TASK_IN_PROGRESS_STATUSES,
+                TASK_NEW_STATUSES,
+            )
+            if column_metric == "status"
+            else status_val
+        )
+        items.append((assignee, bucket))
+    for iss in issues:
+        assignee = get_assignee(iss)
+        status_val = get_status(iss) if column_metric == "status" else get_priority(iss)
+        bucket = (
+            map_to_bucket(
+                status_val,
+                ISSUE_DONE_STATUSES,
+                ISSUE_IN_PROGRESS_STATUSES,
+                ISSUE_NEW_STATUSES,
+            )
+            if column_metric == "status"
+            else status_val
+        )
+        items.append((assignee, bucket))
+
+    # --- Build sorted lists of users and metrics (columns) ---
+    assignees = sorted(set([a for a, _ in items if a != "Unassigned"]))
+    if "Unassigned" not in assignees:
+        assignees.append("Unassigned")
+    else:
+        assignees = [a for a in assignees if a != "Unassigned"] + ["Unassigned"]
+
+    if column_metric == "status":
+        COLUMNS = ["Not Started", "In Progress", "Done"]
+    else:
+        COLUMNS = sorted(set([m for _, m in items]))
+
+    df = pd.DataFrame(items, columns=["assignee", "metric"])
+    heatmap_df = (
+        df.groupby(["assignee", "metric"])
+        .size()
+        .unstack(fill_value=0)
+        .reindex(index=assignees, columns=COLUMNS, fill_value=0)
+    )
+
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=heatmap_df.values,
+            x=heatmap_df.columns,
+            y=heatmap_df.index,
+            colorscale="Blues",
+            hoverongaps=False,
+            text=heatmap_df.values,
+            texttemplate="%{text}",
+            colorbar=dict(title="Task Count"),
+        )
+    )
+    fig.update_layout(
+        title="Task Assignment Heatmap",
+        xaxis_title=(
+            column_metric.capitalize() if column_metric != "status" else "Status"
+        ),
+        yaxis_title="Assignee",
+        autosize=True,
+        margin=dict(l=60, r=40, t=60, b=60),
+        template="simple_white",
+        height=max(350, 30 * len(assignees) + 120),
+    )
+    return fig.to_html(include_plotlyjs="cdn", full_html=False)

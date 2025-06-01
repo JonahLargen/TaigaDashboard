@@ -94,6 +94,9 @@
     <div>
         {{ user_story_status_breakdown_html|safe }}
     </div>
+    <div>
+        {{ task_assignment_heatmap_html|safe }}
+    </div>
 
     <div class="code-block-container">
         <div class="code-block-header" onclick="toggleCodeBlock(this)">
@@ -159,6 +162,17 @@
             <button class="copy-btn" onclick="event.stopPropagation(); copyCodeBlock(this)">Copy</button>
         </div>
         <pre class="code-block-content collapsed" id="project-json">{{ project_json }}</pre>
+    </div>
+
+    <div class="code-block-container">
+        <div class="code-block-header" onclick="toggleCodeBlock(this)">
+            <span>
+                <span class="toggle-btn">►</span>
+                Users
+            </span>
+            <button class="copy-btn" onclick="event.stopPropagation(); copyCodeBlock(this)">Copy</button>
+        </div>
+        <pre class="code-block-content collapsed" id="project-json">{{ users_json }}</pre>
     </div>
 </body>
 </html>
