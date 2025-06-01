@@ -7,13 +7,17 @@ from app.taiga_plotly import (
 )
 from dotenv import load_dotenv
 import json
+from flask_caching import Cache
 
 app = Flask(__name__)
 
 load_dotenv()  # loads .env file into environment variables
 
+cache = Cache(config={'CACHE_TYPE': 'simple'})
+cache.init_app(app)
 
 @app.route("/")
+@cache.cached(timeout=900)  # 900 seconds = 15 minutes
 def home():
     client = create_taiga_client()
     epics = client.get_epics()
