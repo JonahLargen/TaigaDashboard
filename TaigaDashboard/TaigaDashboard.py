@@ -5,6 +5,7 @@ from app.taiga_plotly import (
     get_epic_progress_html,
     get_task_status_breakdown_html,
     get_task_assignment_heatmap_html,
+    get_task_createdby_heatmap_html,
     get_tag_cloud_html,
     get_tag_bar_chart_html,
     get_issue_type_severity_priority_donut_charts_html,
@@ -55,6 +56,9 @@ def home():
     task_assignment_heatmap_html = get_task_assignment_heatmap_html(
         users, userstories, tasks, issues
     )
+    task_createdby_heatmap_html = get_task_createdby_heatmap_html(
+        users, userstories, tasks, issues
+    )
     tag_cloud_html = get_tag_cloud_html(userstories, tasks, issues)
     tag_bar_chart_html = get_tag_bar_chart_html(userstories, tasks, issues)
     issue_type_severity_priority_donut_charts_html = (
@@ -73,6 +77,7 @@ def home():
         user_story_status_breakdown_html=user_story_status_breakdown_html,
         task_status_breakdown_html=task_status_breakdown_html,
         task_assignment_heatmap_html=task_assignment_heatmap_html,
+        task_createdby_heatmap_html=task_createdby_heatmap_html,
         tag_cloud_html=tag_cloud_html,
         tag_bar_chart_html=tag_bar_chart_html,
         issue_type_severity_priority_donut_charts_html=issue_type_severity_priority_donut_charts_html,

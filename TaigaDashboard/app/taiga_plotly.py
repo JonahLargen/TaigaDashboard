@@ -672,7 +672,7 @@ def get_task_assignment_heatmap_html(
         )
     )
     fig.update_layout(
-        title="Task Assignment Heatmap",
+        title="User Story/Task/Issue Assignment Heatmap",
         xaxis_title=(
             column_metric.capitalize() if column_metric != "status" else "Status"
         ),
@@ -681,6 +681,148 @@ def get_task_assignment_heatmap_html(
         margin=dict(l=60, r=40, t=60, b=60),
         template="simple_white",
         height=max(350, 30 * len(assignees) + 120),
+    )
+    return fig.to_html(include_plotlyjs="cdn", full_html=False)
+
+def get_task_createdby_heatmap_html(
+    users, userstories, tasks, issues, column_metric="status"
+):
+    """
+    Returns an HTML div containing a Plotly heatmap based on creator (not assignee),
+    using users, userstories, tasks, and issues.
+    Assumes *_STATUSES variables are defined in the outer scope.
+    """
+
+    # Filter relevant items
+    userstories = filter_relevant_userstories(userstories)
+    tasks = filter_relevant_tasks(tasks)
+    issues = filter_relevant_issues(issues)
+
+    # --- Build user lookup ---
+    user_lookup = {
+        u["id"]: u.get("full_name_display") or u.get("full_name") or u.get("username")
+        for u in users
+    }
+    user_lookup[None] = "Unknown"
+
+    # --- Helper to get creator name ---
+    def get_creator(obj):
+        # Taiga: "owner" is ID, "owner_extra_info" is dict with display name
+        owner_id = obj.get("owner")
+        return user_lookup.get(owner_id, "Unknown")
+
+    # --- Helper to get status or priority ---
+    def get_status(obj):
+        info = obj.get("status_extra_info")
+        if info and isinstance(info, dict):
+            return info.get("name", "Unknown")
+        return str(obj.get("status", "Unknown"))
+
+    def get_priority(obj):
+        info = obj.get("priority_extra_info")
+        if info and isinstance(info, dict):
+            return info.get("name", "Normal")
+        return str(obj.get("priority", "Normal"))
+
+    # --- Mapping to New, In Progress, Done ---
+    def map_to_bucket(status, done, in_progress, not_started):
+        s = str(status).strip().lower()
+        if s in [d.lower() for d in done]:
+            return "Done"
+        elif s in [p.lower() for p in in_progress]:
+            return "In Progress"
+        elif s in [n.lower() for n in not_started]:
+            return "New"
+        else:
+            return "New"
+
+    # --- Flatten all items to creator/metric ---
+    items = []
+    for us in userstories:
+        creator = get_creator(us)
+        status_val = get_status(us) if column_metric == "status" else get_priority(us)
+        bucket = (
+            map_to_bucket(
+                status_val,
+                USER_STORY_DONE_STATUSES,
+                USER_STORY_IN_PROGRESS_STATUSES,
+                USER_STORY_NEW_STATUSES,
+            )
+            if column_metric == "status"
+            else status_val
+        )
+        items.append((creator, bucket))
+    for t in tasks:
+        creator = get_creator(t)
+        status_val = get_status(t) if column_metric == "status" else get_priority(t)
+        bucket = (
+            map_to_bucket(
+                status_val,
+                TASK_DONE_STATUSES,
+                TASK_IN_PROGRESS_STATUSES,
+                TASK_NEW_STATUSES,
+            )
+            if column_metric == "status"
+            else status_val
+        )
+        items.append((creator, bucket))
+    for iss in issues:
+        creator = get_creator(iss)
+        status_val = get_status(iss) if column_metric == "status" else get_priority(iss)
+        bucket = (
+            map_to_bucket(
+                status_val,
+                ISSUE_DONE_STATUSES,
+                ISSUE_IN_PROGRESS_STATUSES,
+                ISSUE_NEW_STATUSES,
+            )
+            if column_metric == "status"
+            else status_val
+        )
+        items.append((creator, bucket))
+
+    # --- Build sorted lists of creators and metrics (columns) ---
+    creators = sorted(set([a for a, _ in items if a != "Unknown"]))
+    if "Unknown" not in creators:
+        creators.append("Unknown")
+    else:
+        creators = [a for a in creators if a != "Unknown"] + ["Unknown"]
+
+    if column_metric == "status":
+        COLUMNS = ["New", "In Progress", "Done"]
+    else:
+        COLUMNS = sorted(set([m for _, m in items]))
+
+    df = pd.DataFrame(items, columns=["creator", "metric"])
+    heatmap_df = (
+        df.groupby(["creator", "metric"])
+        .size()
+        .unstack(fill_value=0)
+        .reindex(index=creators, columns=COLUMNS, fill_value=0)
+    )
+
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=heatmap_df.values,
+            x=heatmap_df.columns,
+            y=heatmap_df.index,
+            colorscale="Blues",
+            hoverongaps=False,
+            text=heatmap_df.values,
+            texttemplate="%{text}",
+            colorbar=dict(title="Task Count"),
+        )
+    )
+    fig.update_layout(
+        title="User Story/Task/Issue Creator Heatmap",
+        xaxis_title=(
+            column_metric.capitalize() if column_metric != "status" else "Status"
+        ),
+        yaxis_title="Created By",
+        autosize=True,
+        margin=dict(l=60, r=40, t=60, b=60),
+        template="simple_white",
+        height=max(350, 30 * len(creators) + 120),
     )
     return fig.to_html(include_plotlyjs="cdn", full_html=False)
 
