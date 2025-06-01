@@ -136,6 +136,14 @@
             }
     </style>
 
+    <style>
+        .spacer {
+            height: 50px;
+            width: 100%;
+            display: block;
+        }
+    </style>
+
     <script>
         function toggleCodeBlock(headerElem) {
             const codeBlock = headerElem.parentElement.querySelector('.code-block-content');
@@ -200,17 +208,25 @@
         {{ epic_progress_bar_html|safe }}
     </div>
 
+    <div class="spacer"></div>
+
     <div>
         {{ user_story_status_breakdown_html|safe }}
     </div>
+
+    <div class="spacer"></div>
 
     <div>
         {{ task_status_breakdown_html|safe }}
     </div>
 
+    <div class="spacer"></div>
+
     <div>
         {{ task_assignment_heatmap_html|safe }}
     </div>
+
+    <div class="spacer"></div>
 
     <div class="toggle-switch">
         <label class="toggle-switch-label left active" id="toggle-label-left" for="chart-toggle-input">Tag Cloud</label>
@@ -227,8 +243,16 @@
         {{ tag_bar_chart_html|safe }}
     </div>
 
+    <div class="spacer"></div>
+
     <div>
         {{ issue_type_severity_priority_donut_charts_html|safe }}
+    </div>
+
+    <div class="spacer"></div>
+
+    <div>
+        {{ blocked_items_table_html|safe }}
     </div>
 </body>
 </html>

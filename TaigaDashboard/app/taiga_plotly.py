@@ -1,8 +1,8 @@
-import plotly.graph_objs as go
+﻿import plotly.graph_objs as go
 import plotly
 import os
 from collections import defaultdict, Counter
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import pandas as pd
 import random
 
@@ -929,3 +929,86 @@ def get_issue_type_severity_priority_donut_charts_html(
     """
 
     return combined_html
+
+def get_blocked_items_table_html(epics, user_stories, issues, tasks):
+    """
+    Returns HTML for a Plotly table listing all blocked items (user stories, tasks, issues, epics),
+    showing type, reference/subject, assignee, blockers note, and age (in days).
+    """
+    def age_in_days(created_date):
+        try:
+            dt = datetime.fromisoformat(created_date.replace("Z", "+00:00"))
+            now = datetime.now(timezone.utc)
+            return (now - dt).days
+        except Exception:
+            return "?"
+
+    def get_assignee(item):
+        info = item.get("assigned_to_extra_info")
+        if info and isinstance(info, dict):
+            return info.get("full_name_display") or info.get("username") or "Unassigned"
+        return "Unassigned"
+
+    blocked_items = []
+    for src, items, label in [
+        ("Epic", epics, "Epic"),
+        ("User Story", user_stories, "User Story"),
+        ("Task", tasks, "Task"),
+        ("Issue", issues, "Issue"),
+    ]:
+        for item in items:
+            if item.get("is_blocked", False):
+                blocked_items.append({
+                    "type": label,
+                    "ref": item.get("ref", ""),
+                    "subject": item.get("subject", ""),
+                    "assignee": get_assignee(item),
+                    "blocked_note": item.get("blocked_note", ""),
+                    "created_date": item.get("created_date", ""),
+                    "age_days": age_in_days(item.get("created_date", "")),
+                })
+
+    blocked_items.sort(key=lambda x: (isinstance(x["age_days"], int), x["age_days"]), reverse=True)
+
+    headers = ["Type", "Ref", "Subject", "Assignee", "Blocked Note", "Age (days)"]
+    cells = [
+        [item["type"] for item in blocked_items],
+        [item["ref"] for item in blocked_items],
+        [f"<span style='white-space:pre-wrap'>{item['subject']}</span>" for item in blocked_items],
+        [item["assignee"] for item in blocked_items],
+        [f"<span style='white-space:pre-wrap'>{item['blocked_note']}</span>" for item in blocked_items],
+        [item["age_days"] for item in blocked_items],
+    ]
+
+    if not blocked_items:
+        return (
+            "<div style='padding:24px;text-align:center;border-radius:8px;background:#f9f9f9;"
+            "border:1.5px solid #e1e1e1;font-size:1.2em;color:#999;'>"
+            "🎉 No items are currently blocked! 🎉"
+            "</div>"
+        )
+
+    fig = go.Figure(
+        data=[go.Table(
+            header=dict(
+                values=headers,
+                fill_color="#ef553b",
+                align="left",
+                font=dict(color="white", size=15)
+            ),
+            cells=dict(
+                values=cells,
+                fill_color=[["#fff7f6", "#ffe5e1"] * (len(blocked_items) // 2 + 1)],
+                align="left",
+                font=dict(color="#222", size=15),
+                height=52,  # Increased row height
+            ),
+            columnwidth=[60, 40, 240, 120, 320, 60],  # Subject/Blocked Note wider
+        )]
+    )
+    fig.update_layout(
+        title="Blocked Items",
+        margin=dict(l=10, r=10, t=48, b=10),
+        height=70 + len(blocked_items) * 64,  # More room per row
+    )
+    return fig.to_html(full_html=False, include_plotlyjs=False, config={"displayModeBar": False})

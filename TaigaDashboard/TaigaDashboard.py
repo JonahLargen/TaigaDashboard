@@ -8,6 +8,7 @@ from app.taiga_plotly import (
     get_tag_cloud_html,
     get_tag_bar_chart_html,
     get_issue_type_severity_priority_donut_charts_html,
+    get_blocked_items_table_html
 )
 from dotenv import load_dotenv
 import json
@@ -61,6 +62,7 @@ def home():
             issues, issue_types, severities, priorities
         )
     )
+    blocked_items_table_html = get_blocked_items_table_html(epics, userstories, tasks, issues)
 
     return render_template(
         "index.html",
@@ -74,6 +76,7 @@ def home():
         tag_cloud_html=tag_cloud_html,
         tag_bar_chart_html=tag_bar_chart_html,
         issue_type_severity_priority_donut_charts_html=issue_type_severity_priority_donut_charts_html,
+        blocked_items_table_html=blocked_items_table_html
     )
 
 
