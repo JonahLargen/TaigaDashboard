@@ -136,13 +136,74 @@ def filter_relevant_tasks(tasks, now=None):
     return relevant
 
 
+def get_dashboard_config_html():
+    return f"""
+    <div class="dashboard-config-summary" style="margin-bottom: 2em;">
+      <button id="toggle-dashboard-config-btn" style="margin-bottom: 8px;">Show Dashboard Filters &#9660;</button>
+      <div id="dashboard-config-table-container" style="display: none;">
+        <div style="display: flex; justify-content: center;">
+          <table style="border-collapse:collapse; margin: 0 auto;">
+            <tr><th style="border:1px solid #ccc;padding:4px;">Type</th>
+                <th style="border:1px solid #ccc;padding:4px;">Days Back (Done Statuses)</th>
+                <th style="border:1px solid #ccc;padding:4px;">Done Statuses</th>
+                <th style="border:1px solid #ccc;padding:4px;">In Progress Statuses</th>
+                <th style="border:1px solid #ccc;padding:4px;">New Statuses</th>
+            </tr>
+            <tr>
+                <td style="border:1px solid #ccc;padding:4px;">Epic</td>
+                <td style="border:1px solid #ccc;padding:4px;">{EPIC_DAYS_AFTER_CLOSE}</td>
+                <td style="border:1px solid #ccc;padding:4px;">-</td>
+                <td style="border:1px solid #ccc;padding:4px;">-</td>
+                <td style="border:1px solid #ccc;padding:4px;">-</td>
+            </tr>
+            <tr>
+                <td style="border:1px solid #ccc;padding:4px;">User Story</td>
+                <td style="border:1px solid #ccc;padding:4px;">{USER_STORY_DAYS_AFTER_CLOSE}</td>
+                <td style="border:1px solid #ccc;padding:4px;">{', '.join(USER_STORY_DONE_STATUSES)}</td>
+                <td style="border:1px solid #ccc;padding:4px;">{', '.join(USER_STORY_IN_PROGRESS_STATUSES)}</td>
+                <td style="border:1px solid #ccc;padding:4px;">{', '.join(USER_STORY_NEW_STATUSES)}</td>
+            </tr>
+            <tr>
+                <td style="border:1px solid #ccc;padding:4px;">Task</td>
+                <td style="border:1px solid #ccc;padding:4px;">{TASK_DAYS_AFTER_CLOSE}</td>
+                <td style="border:1px solid #ccc;padding:4px;">{', '.join(TASK_DONE_STATUSES)}</td>
+                <td style="border:1px solid #ccc;padding:4px;">{', '.join(TASK_IN_PROGRESS_STATUSES)}</td>
+                <td style="border:1px solid #ccc;padding:4px;">{', '.join(TASK_NEW_STATUSES)}</td>
+            </tr>
+            <tr>
+                <td style="border:1px solid #ccc;padding:4px;">Issue</td>
+                <td style="border:1px solid #ccc;padding:4px;">{ISSUE_DAYS_AFTER_CLOSE}</td>
+                <td style="border:1px solid #ccc;padding:4px;">{', '.join(ISSUE_DONE_STATUSES)}</td>
+                <td style="border:1px solid #ccc;padding:4px;">{', '.join(ISSUE_IN_PROGRESS_STATUSES)}</td>
+                <td style="border:1px solid #ccc;padding:4px;">{', '.join(ISSUE_NEW_STATUSES)}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+      <script>
+        const toggleBtn = document.getElementById('toggle-dashboard-config-btn');
+        const tableContainer = document.getElementById('dashboard-config-table-container');
+        toggleBtn.addEventListener('click', function() {{
+            if (tableContainer.style.display === 'none') {{
+                tableContainer.style.display = 'block';
+                toggleBtn.innerHTML = 'Hide Dashboard Filters &#9650;';
+            }} else {{
+                tableContainer.style.display = 'none';
+                toggleBtn.innerHTML = 'Show Dashboard Filters &#9660;';
+            }}
+        }});
+      </script>
+    </div>
+    """
+
+
 def get_epic_progress_html(epics, userstories):
     """
     Takes Taiga API lists of epics and user stories.
     Returns HTML for a Plotly stacked horizontal bar chart showing epic progress:
     - Green: percent of user stories Done/Closed
     - Orange: percent of user stories In Progress (customizable status names)
-    - Gray: percent Not Started
+    - Gray: percent New
     Also displays: epic status, total stories, and story counts per section.
     """
     # Filter epics to only those that are relevant (not closed or recently modified)
@@ -245,7 +306,7 @@ def get_epic_progress_html(epics, userstories):
         x=not_started_perc,
         y=y_labels,
         orientation="h",
-        name="Not Started",
+        name="New",
         marker=dict(color="lightgray"),
         text=not_started_text,
         textposition="inside",
@@ -334,7 +395,7 @@ def get_task_status_breakdown_html(userstories, tasks, issues, sprints, title):
       - Sprint label: name\nYYYY-MM-DD to YYYY-MM-DD\nStatus
     """
     # Filter sprints to active, next, most recent completed
-    show_sprints, show_sprint_ids = filter_sprints_for_chart(sprints, 1, 2)
+    show_sprints, show_sprint_ids = filter_sprints_for_chart(sprints, 1, 1)
     today = datetime.utcnow().date()
     # Build mapping: sprint id -> sprint object
     sprint_id_to_obj = {s["id"]: s for s in show_sprints}
@@ -440,7 +501,7 @@ def get_task_status_breakdown_html(userstories, tasks, issues, sprints, title):
             text=[str(n) if n > 0 else "0" for n in done_counts],
             textposition="inside",
             insidetextanchor="middle",
-            textangle=0
+            textangle=0,
         ),
         go.Bar(
             x=group_labels,
@@ -450,7 +511,7 @@ def get_task_status_breakdown_html(userstories, tasks, issues, sprints, title):
             text=[str(n) if n > 0 else "0" for n in in_progress_counts],
             textposition="inside",
             insidetextanchor="middle",
-            textangle=0
+            textangle=0,
         ),
         go.Bar(
             x=group_labels,
@@ -460,7 +521,7 @@ def get_task_status_breakdown_html(userstories, tasks, issues, sprints, title):
             text=[str(n) if n > 0 else "0" for n in new_counts],
             textposition="inside",
             insidetextanchor="middle",
-            textangle=0
+            textangle=0,
         ),
     ]
 
@@ -520,7 +581,7 @@ def get_task_assignment_heatmap_html(
             return info.get("name", "Normal")
         return str(obj.get("priority", "Normal"))
 
-    # --- Mapping to Not Started, In Progress, Done ---
+    # --- Mapping to New, In Progress, Done ---
     def map_to_bucket(status, done, in_progress, not_started):
         s = str(status).strip().lower()
         if s in [d.lower() for d in done]:
@@ -528,9 +589,9 @@ def get_task_assignment_heatmap_html(
         elif s in [p.lower() for p in in_progress]:
             return "In Progress"
         elif s in [n.lower() for n in not_started]:
-            return "Not Started"
+            return "New"
         else:
-            return "Not Started"
+            return "New"
 
     # --- Flatten all items to assignee/metric ---
     items = []
@@ -585,7 +646,7 @@ def get_task_assignment_heatmap_html(
         assignees = [a for a in assignees if a != "Unassigned"] + ["Unassigned"]
 
     if column_metric == "status":
-        COLUMNS = ["Not Started", "In Progress", "Done"]
+        COLUMNS = ["New", "In Progress", "Done"]
     else:
         COLUMNS = sorted(set([m for _, m in items]))
 

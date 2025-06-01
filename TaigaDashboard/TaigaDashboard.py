@@ -1,6 +1,7 @@
 from flask import Flask, render_template
 from app.taiga_factory import create_taiga_client
 from app.taiga_plotly import (
+    get_dashboard_config_html,
     get_epic_progress_html,
     get_task_status_breakdown_html,
     get_task_assignment_heatmap_html,
@@ -37,12 +38,15 @@ def home():
     users_json = json.dumps(users, indent=2)
 
     project_name = project["name"]
+    project_id = project["id"]
+    logo = project["logo_small_url"]
+    config_html = get_dashboard_config_html()
     epic_progress_bar_html = get_epic_progress_html(epics, userstories)
     user_story_status_breakdown_html = get_task_status_breakdown_html(
-        userstories, [], [], sprints, "User Story Status Breakdown by Sprint"
+        userstories, [], [], sprints, "User Story Status Breakdown by Sprint (Requirement Items)"
     )
     task_status_breakdown_html = get_task_status_breakdown_html(
-        [], tasks, issues, sprints, "Work Item (Task/Issue) Status Breakdown by Sprint"
+        [], tasks, issues, sprints, "Task/Issue Status Breakdown by Sprint (Work Items)"
     )
     task_assignment_heatmap_html = get_task_assignment_heatmap_html(
         users, userstories, tasks, issues
@@ -50,7 +54,9 @@ def home():
 
     return render_template(
         "index.html",
-        project_name=project_name,
+        project_name=f"{project_name} ({project_id})",
+        logo=logo,
+        config_html=config_html,
         epic_progress_bar_html=epic_progress_bar_html,
         user_story_status_breakdown_html=user_story_status_breakdown_html,
         task_status_breakdown_html=task_status_breakdown_html,

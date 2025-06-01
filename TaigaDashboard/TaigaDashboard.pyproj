@@ -34,13 +34,11 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="app\" />
-    <Folder Include="static\" />
     <Folder Include="templates\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include=".env" />
     <Content Include="requirements.txt" />
-    <Content Include="static\taiga_logo.png" />
     <Content Include="templates\index.html" />
   </ItemGroup>
   <ItemGroup>

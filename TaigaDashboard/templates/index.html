@@ -2,7 +2,7 @@
 <html>
 <head>
     <title>Taiga Dashboard</title>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='taiga_logo.png') }}">
+    <link rel="icon" type="image/png" href="{{ logo }}">
     <style>
         pre {
             background: #f4f4f4;
@@ -88,6 +88,9 @@
 <body>
     <h1>Taiga Dashboard</h1>
     <h2>{{ project_name }}</h2>
+    <div>
+        {{ config_html|safe }}
+    </div>
     <div>
         {{ epic_progress_bar_html|safe }}
     </div>
