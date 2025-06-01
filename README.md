@@ -16,4 +16,6 @@ The dashboard currently has the following widgets/plotly graphs:
 
 ## Sample Graphs
 
-<img src="Animation.gif" alt="Animation" width="500" height="300">
+<img src="plot1.png" alt="Plot">
+<img src="plot2.png" alt="Plot">
+<img src="plot3.png" alt="Plot">
