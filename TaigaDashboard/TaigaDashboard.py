@@ -5,6 +5,8 @@ from app.taiga_plotly import (
     get_epic_progress_html,
     get_task_status_breakdown_html,
     get_task_assignment_heatmap_html,
+    get_tag_cloud_html,
+    get_tag_bar_chart_html
 )
 from dotenv import load_dotenv
 import json
@@ -40,7 +42,7 @@ def home():
     project_name = project["name"]
     project_id = project["id"]
     logo = project["logo_small_url"]
-    config_html = get_dashboard_config_html()
+    dashboard_config_html = get_dashboard_config_html()
     epic_progress_bar_html = get_epic_progress_html(epics, userstories)
     user_story_status_breakdown_html = get_task_status_breakdown_html(
         userstories, [], [], sprints, "User Story Status Breakdown by Sprint (Requirement Items)"
@@ -51,23 +53,27 @@ def home():
     task_assignment_heatmap_html = get_task_assignment_heatmap_html(
         users, userstories, tasks, issues
     )
+    tag_cloud_html = get_tag_cloud_html(userstories, tasks, issues)
+    tag_bar_chart_html = get_tag_bar_chart_html(userstories, tasks, issues)
 
     return render_template(
         "index.html",
         project_name=f"{project_name} ({project_id})",
         logo=logo,
-        config_html=config_html,
+        dashboard_config_html=dashboard_config_html,
         epic_progress_bar_html=epic_progress_bar_html,
         user_story_status_breakdown_html=user_story_status_breakdown_html,
         task_status_breakdown_html=task_status_breakdown_html,
         task_assignment_heatmap_html=task_assignment_heatmap_html,
+        tag_cloud_html=tag_cloud_html,
+        tag_bar_chart_html=tag_bar_chart_html,
         epics_json=epics_json,
         userstories_json=userstories_json,
         tasks_json=tasks_json,
         issues_json=issues_json,
         sprints_json=sprints_json,
         project_json=project_json,
-        users_json=users_json,
+        users_json=users_json
     )
 
 

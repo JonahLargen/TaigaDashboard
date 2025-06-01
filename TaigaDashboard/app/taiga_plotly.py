@@ -1,9 +1,10 @@
 import plotly.graph_objs as go
 import plotly
 import os
-from collections import defaultdict
+from collections import defaultdict, Counter
 from datetime import datetime, timedelta
 import pandas as pd
+import random
 
 
 def get_int_from_env(var_name, default=0):
@@ -680,5 +681,131 @@ def get_task_assignment_heatmap_html(
         margin=dict(l=60, r=40, t=60, b=60),
         template="simple_white",
         height=max(350, 30 * len(assignees) + 120),
+    )
+    return fig.to_html(include_plotlyjs="cdn", full_html=False)
+
+def get_tag_cloud_html(userstories, tasks, issues, min_font_size=14, max_font_size=48, max_tags=50):
+    """
+    Returns an HTML div containing a Plotly tag cloud showing the most commonly used tags across
+    user stories, tasks, and issues.
+    """
+    # --- Helper to extract tags from an object ---
+    def extract_tags(obj):
+        tags = obj.get("tags", [])
+        return [(t[0], t[1]) for t in tags if isinstance(t, (list, tuple)) and len(t) == 2]
+    
+    # --- Gather tags (name, color) and count occurrences ---
+    tag_counter = Counter()
+    tag_color_lookup = {}
+
+    for obj in userstories + tasks + issues:
+        for name, color in extract_tags(obj):
+            tag_counter[name] += 1
+            tag_color_lookup[name] = color
+
+    # --- Limit to most common tags for clarity ---
+    most_common = tag_counter.most_common(max_tags)
+    tags, counts = zip(*most_common) if most_common else ([], [])
+    
+    # --- Normalize font size by count ---
+    if counts:
+        min_count, max_count = min(counts), max(counts)
+        def font_size(count):
+            if max_count == min_count:
+                return (min_font_size + max_font_size) / 2
+            return min_font_size + (count - min_count) * (max_font_size - min_font_size) / (max_count - min_count)
+    else:
+        font_size = lambda c: (min_font_size + max_font_size) / 2
+
+    # --- Layout tags in a grid or random-ish positions ---
+    n = len(tags)
+    grid_size = int(n ** 0.5) + 1
+    positions = [(i % grid_size, i // grid_size) for i in range(n)]
+    random.shuffle(positions)
+
+    x, y, font_sizes, colors, texts = [], [], [], [], []
+    for idx, tag in enumerate(tags):
+        pos_x, pos_y = positions[idx]
+        x.append(pos_x + random.uniform(-0.3, 0.3))
+        y.append(-pos_y + random.uniform(-0.3, 0.3))
+        font_sizes.append(font_size(tag_counter[tag]))
+        colors.append(tag_color_lookup.get(tag, "#888"))
+        texts.append(tag)
+
+    # --- Build Plotly figure ---
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=x,
+        y=y,
+        mode="text",
+        text=texts,
+        textfont=dict(
+            size=font_sizes,
+            color=colors,
+        ),
+        hovertext=[f"{tag}: {tag_counter[tag]} uses" for tag in tags],
+        hoverinfo="text"
+    ))
+
+    fig.update_layout(
+        xaxis=dict(showgrid=False, zeroline=False, visible=False),
+        yaxis=dict(showgrid=False, zeroline=False, visible=False),
+        plot_bgcolor='white',
+        title="Tag Cloud (by frequency)",
+        margin=dict(l=20, r=20, t=60, b=20),
+        height=max(350, 40 * grid_size),
+    )
+    return fig.to_html(include_plotlyjs="cdn", full_html=False)
+
+def get_tag_bar_chart_html(userstories, tasks, issues, max_tags=50):
+    """
+    Returns an HTML div containing a Plotly vertical bar chart showing the most commonly used tags across
+    user stories, tasks, and issues. Each bar is colored using the tag's color from the schema.
+    The highest bar (most common tag) is on the left.
+    The y-axis is the number of occurrences.
+    """
+    # --- Helper to extract tags from an object ---
+    def extract_tags(obj):
+        tags = obj.get("tags", [])
+        return [(t[0], t[1]) for t in tags if isinstance(t, (list, tuple)) and len(t) == 2]
+    
+    # --- Gather tags (name, color) and count occurrences ---
+    tag_counter = Counter()
+    tag_color_lookup = {}
+
+    for obj in userstories + tasks + issues:
+        for name, color in extract_tags(obj):
+            tag_counter[name] += 1
+            tag_color_lookup[name] = color
+
+    # --- Limit to the most common tags for clarity ---
+    most_common = tag_counter.most_common(max_tags)
+    tags, counts = zip(*most_common) if most_common else ([], [])
+
+    # --- Get bar colors in the same order as tags ---
+    bar_colors = [tag_color_lookup.get(tag, "#888") for tag in tags]
+
+    # --- Build Plotly figure ---
+    fig = go.Figure(
+        data=go.Bar(
+            x=tags,
+            y=counts,
+            marker_color=bar_colors,
+            text=counts,
+            textposition="outside",
+            hovertext=[f"{tag}: {count} uses" for tag, count in zip(tags, counts)],
+            hoverinfo="text"
+        )
+    )
+    fig.update_layout(
+        title="Tag Usage Frequency",
+        xaxis_title="Tag",
+        yaxis_title="Occurrences",
+        showlegend=False,
+        margin=dict(l=60, r=40, t=60, b=60),
+        bargap=0.25,
+        xaxis=dict(tickangle=-40),
+        autosize=True,
+        height=max(350, 18 * len(tags) + 150)
     )
     return fig.to_html(include_plotlyjs="cdn", full_html=False)

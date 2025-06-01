@@ -62,6 +62,80 @@
             }
     </style>
 
+    <style>
+        .toggle-switch {
+            display: inline-flex;
+            align-items: center;
+            user-select: none;
+            margin-bottom: 20px;
+        }
+
+        .toggle-switch-label {
+            margin: 0 12px;
+            font-weight: 600;
+            color: #555;
+            transition: color 0.2s;
+            cursor: pointer;
+        }
+
+            .toggle-switch-label.active {
+                color: #3b82f6;
+            }
+
+        .toggle-switch-slider {
+            position: relative;
+            width: 56px;
+            height: 28px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+            .toggle-switch-slider input {
+                opacity: 0;
+                width: 56px;
+                height: 28px;
+                position: absolute;
+                cursor: pointer;
+                top: 0;
+                left: 0;
+                margin: 0;
+                z-index: 2;
+            }
+
+        .toggle-slider {
+            position: absolute;
+            background-color: #bbb;
+            border-radius: 34px;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            transition: background 0.3s;
+            z-index: 1;
+        }
+
+            .toggle-slider:before {
+                content: "";
+                position: absolute;
+                height: 22px;
+                width: 22px;
+                left: 3px;
+                bottom: 3px;
+                background-color: white;
+                border-radius: 50%;
+                transition: transform 0.3s;
+                box-shadow: 0 1px 2px rgba(0,0,0,0.10);
+            }
+
+        .toggle-switch-slider input:checked + .toggle-slider {
+            background-color: #3b82f6;
+        }
+
+            .toggle-switch-slider input:checked + .toggle-slider:before {
+                transform: translateX(28px);
+            }
+    </style>
+
     <script>
         function toggleCodeBlock(headerElem) {
             const codeBlock = headerElem.parentElement.querySelector('.code-block-content');
@@ -83,25 +157,74 @@
                 setTimeout(() => { btn.textContent = 'Copy'; }, 1200);
             });
         }
+
+        function clickAutoscaleButton(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const btn = container.querySelector('.modebar-btn[data-title="Autoscale"]');
+            if (btn) btn.click();
+        }
+
+        // Toggle function for slider and label coloring
+        function sliderTagChartToggle() {
+            const cloud = document.getElementById('tag-cloud-container');
+            const bar = document.getElementById('tag-bar-container');
+            const slider = document.getElementById('chart-toggle-input');
+            const leftLabel = document.getElementById('toggle-label-left');
+            const rightLabel = document.getElementById('toggle-label-right');
+            if (slider.checked) {
+                cloud.style.display = 'none';
+                bar.style.display = '';
+                leftLabel.classList.remove('active');
+                rightLabel.classList.add('active');
+                setTimeout(() => clickAutoscaleButton('tag-bar-container'), 10);
+            } else {
+                cloud.style.display = '';
+                bar.style.display = 'none';
+                leftLabel.classList.add('active');
+                rightLabel.classList.remove('active');
+                setTimeout(() => clickAutoscaleButton('tag-cloud-container'), 10);
+            }
+        }
     </script>
 </head>
 <body>
     <h1>Taiga Dashboard</h1>
     <h2>{{ project_name }}</h2>
+
     <div>
-        {{ config_html|safe }}
+        {{ dashboard_config_html|safe }}
     </div>
+
     <div>
         {{ epic_progress_bar_html|safe }}
     </div>
+
     <div>
         {{ user_story_status_breakdown_html|safe }}
     </div>
+
     <div>
         {{ task_status_breakdown_html|safe }}
     </div>
+
     <div>
         {{ task_assignment_heatmap_html|safe }}
+    </div>
+
+    <div class="toggle-switch">
+        <label class="toggle-switch-label left active" id="toggle-label-left" for="chart-toggle-input">Tag Cloud</label>
+        <span class="toggle-switch-slider">
+            <input type="checkbox" id="chart-toggle-input" onchange="sliderTagChartToggle()" aria-checked="false">
+            <span class="toggle-slider"></span>
+        </span>
+        <label class="toggle-switch-label right" id="toggle-label-right" for="chart-toggle-input">Bar Chart</label>
+    </div>
+    <div id="tag-cloud-container">
+        {{ tag_cloud_html|safe }}
+    </div>
+    <div id="tag-bar-container" style="display: none;">
+        {{ tag_bar_chart_html|safe }}
     </div>
 
     <div class="code-block-container">
