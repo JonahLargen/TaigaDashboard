@@ -2,8 +2,8 @@ from flask import Flask, render_template
 from app.taiga_factory import create_taiga_client
 from app.taiga_plotly import (
     get_epic_progress_html,
-    get_user_story_status_breakdown_html,
-    get_task_assignment_heatmap_html
+    get_task_status_breakdown_html,
+    get_task_assignment_heatmap_html,
 )
 from dotenv import load_dotenv
 import json
@@ -34,16 +34,22 @@ def home():
 
     project_name = project["name"]
     epic_progress_bar_html = get_epic_progress_html(epics, userstories)
-    user_story_status_breakdown_html = get_user_story_status_breakdown_html(
-        userstories, sprints
+    user_story_status_breakdown_html = get_task_status_breakdown_html(
+        userstories, [], [], sprints, "User Story Status Breakdown by Sprint"
     )
-    task_assignment_heatmap_html = get_task_assignment_heatmap_html(users, userstories, tasks, issues)
+    task_status_breakdown_html = get_task_status_breakdown_html(
+        [], tasks, issues, sprints, "Work Item (Task/Issue) Status Breakdown by Sprint"
+    )
+    task_assignment_heatmap_html = get_task_assignment_heatmap_html(
+        users, userstories, tasks, issues
+    )
 
     return render_template(
         "index.html",
         project_name=project_name,
         epic_progress_bar_html=epic_progress_bar_html,
         user_story_status_breakdown_html=user_story_status_breakdown_html,
+        task_status_breakdown_html=task_status_breakdown_html,
         task_assignment_heatmap_html=task_assignment_heatmap_html,
         epics_json=epics_json,
         userstories_json=userstories_json,

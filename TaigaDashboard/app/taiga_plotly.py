@@ -325,12 +325,12 @@ def format_date_range(start, end):
     return f"{start_dt.strftime('%m/%d/%y')} to {end_dt.strftime('%m/%d/%y')}"
 
 
-def get_user_story_status_breakdown_html(userstories, sprints):
+def get_task_status_breakdown_html(userstories, tasks, issues, sprints, title):
     """
     Returns HTML for a stacked bar chart:
       - X-axis: sprint names (filtered: No Sprint, then active/future/completed ordered by start date)
-      - Each bar: counts of user stories in each status per group
-      - Bar order: Done (bottom), In Progress (middle), Not Started (top)
+      - Each bar: counts of user stories, tasks, and issues in each status per group
+      - Bar order: Done (bottom), In Progress (middle), New (top)
       - Sprint label: name\nYYYY-MM-DD to YYYY-MM-DD\nStatus
     """
     # Filter sprints to active, next, most recent completed
@@ -340,15 +340,23 @@ def get_user_story_status_breakdown_html(userstories, sprints):
     sprint_id_to_obj = {s["id"]: s for s in show_sprints}
 
     # Only show these sprints and "No Sprint"
-    group_ids = set(
-        [
-            us.get("milestone")
-            for us in userstories
-            if us.get("milestone") in sprint_id_to_obj
-        ]
-    )
+    all_items = []
+
+    # Helper to append user story, task, or issue with normalized milestone (sprint)
+    def add_item(item, milestone_field, item_type):
+        group_id = item.get(milestone_field)
+        all_items.append((group_id, item, item_type))
+
+    for us in userstories:
+        add_item(us, "milestone", "userstory")
+    for t in tasks:
+        add_item(t, "milestone", "task")
+    for iss in issues:
+        add_item(iss, "milestone", "issue")
+
+    group_ids = set([gid for gid, _, _ in all_items if gid in sprint_id_to_obj])
     # Always include "No Sprint" if present
-    if any(us.get("milestone") is None for us in userstories):
+    if any(gid is None for gid, _, _ in all_items):
         group_ids.add(None)
 
     # Order sprints: No Sprint left, then by start date ascending
@@ -376,24 +384,52 @@ def get_user_story_status_breakdown_html(userstories, sprints):
             group_labels.append(f"{name}<br>{date_range}<br>{status}")
 
     # Main counts: group_id -> counts by status
-    group_counts = defaultdict(lambda: {"Done": 0, "In Progress": 0, "Not Started": 0})
+    group_counts = defaultdict(lambda: {"Done": 0, "In Progress": 0, "New": 0})
 
-    for us in userstories:
-        group_id = us.get("milestone")
+    # Helper for status categorization
+    def get_status_bucket(item, done_statuses, in_progress_statuses, new_statuses):
+        status_raw = (
+            (item.get("status_extra_info", {}).get("name") or "").strip().lower()
+        )
+        if status_raw in [s.lower() for s in done_statuses]:
+            return "Done"
+        elif status_raw in [s.lower() for s in in_progress_statuses]:
+            return "In Progress"
+        else:
+            return "New"
+
+    for group_id, item, item_type in all_items:
         # Only count if in our filtered set or it's "No Sprint"
         if group_id not in sprint_id_to_obj and group_id is not None:
             continue
-        status_raw = (us.get("status_extra_info", {}).get("name") or "").strip().lower()
-        if status_raw in USER_STORY_DONE_STATUSES:
-            group_counts[group_id]["Done"] += 1
-        elif status_raw in USER_STORY_IN_PROGRESS_STATUSES:
-            group_counts[group_id]["In Progress"] += 1
+        if item_type == "userstory":
+            bucket = get_status_bucket(
+                item,
+                USER_STORY_DONE_STATUSES,
+                USER_STORY_IN_PROGRESS_STATUSES,
+                USER_STORY_NEW_STATUSES,
+            )
+        elif item_type == "task":
+            bucket = get_status_bucket(
+                item,
+                TASK_DONE_STATUSES,
+                TASK_IN_PROGRESS_STATUSES,
+                TASK_NEW_STATUSES,
+            )
+        elif item_type == "issue":
+            bucket = get_status_bucket(
+                item,
+                ISSUE_DONE_STATUSES,
+                ISSUE_IN_PROGRESS_STATUSES,
+                ISSUE_NEW_STATUSES,
+            )
         else:
-            group_counts[group_id]["Not Started"] += 1
+            bucket = "New"
+        group_counts[group_id][bucket] += 1
 
     done_counts = [group_counts[gid]["Done"] for gid in ordered_group_ids]
     in_progress_counts = [group_counts[gid]["In Progress"] for gid in ordered_group_ids]
-    not_started_counts = [group_counts[gid]["Not Started"] for gid in ordered_group_ids]
+    new_counts = [group_counts[gid]["New"] for gid in ordered_group_ids]
 
     traces = [
         go.Bar(
@@ -404,6 +440,7 @@ def get_user_story_status_breakdown_html(userstories, sprints):
             text=[str(n) if n > 0 else "0" for n in done_counts],
             textposition="inside",
             insidetextanchor="middle",
+            textangle=0
         ),
         go.Bar(
             x=group_labels,
@@ -413,23 +450,25 @@ def get_user_story_status_breakdown_html(userstories, sprints):
             text=[str(n) if n > 0 else "0" for n in in_progress_counts],
             textposition="inside",
             insidetextanchor="middle",
+            textangle=0
         ),
         go.Bar(
             x=group_labels,
-            y=not_started_counts,
-            name="Not Started",
+            y=new_counts,
+            name="New",
             marker=dict(color="lightgray"),
-            text=[str(n) if n > 0 else "0" for n in not_started_counts],
+            text=[str(n) if n > 0 else "0" for n in new_counts],
             textposition="inside",
             insidetextanchor="middle",
+            textangle=0
         ),
     ]
 
     layout = go.Layout(
-        title="User Story Status Breakdown by Sprint",
+        title=title,
         xaxis=dict(title="Sprint"),
         yaxis=dict(
-            title="Number of User Stories",
+            title="Number of Items",
             tickmode="linear",
             tick0=0,
             dtick=1,
