@@ -227,6 +227,10 @@
         {{ tag_bar_chart_html|safe }}
     </div>
 
+    <div>
+        {{ issue_type_severity_priority_donut_charts_html|safe }}
+    </div>
+
     <div class="code-block-container">
         <div class="code-block-header" onclick="toggleCodeBlock(this)">
             <span>
@@ -302,6 +306,39 @@
             <button class="copy-btn" onclick="event.stopPropagation(); copyCodeBlock(this)">Copy</button>
         </div>
         <pre class="code-block-content collapsed" id="project-json">{{ users_json }}</pre>
+    </div>
+
+    <div class="code-block-container">
+        <div class="code-block-header" onclick="toggleCodeBlock(this)">
+            <span>
+                <span class="toggle-btn">►</span>
+                Severities
+            </span>
+            <button class="copy-btn" onclick="event.stopPropagation(); copyCodeBlock(this)">Copy</button>
+        </div>
+        <pre class="code-block-content collapsed" id="severities-json">{{ severities_json }}</pre>
+    </div>
+
+    <div class="code-block-container">
+        <div class="code-block-header" onclick="toggleCodeBlock(this)">
+            <span>
+                <span class="toggle-btn">►</span>
+                Priorities
+            </span>
+            <button class="copy-btn" onclick="event.stopPropagation(); copyCodeBlock(this)">Copy</button>
+        </div>
+        <pre class="code-block-content collapsed" id="priorities-json">{{ priorities_json }}</pre>
+    </div>
+
+    <div class="code-block-container">
+        <div class="code-block-header" onclick="toggleCodeBlock(this)">
+            <span>
+                <span class="toggle-btn">►</span>
+                Issue Types
+            </span>
+            <button class="copy-btn" onclick="event.stopPropagation(); copyCodeBlock(this)">Copy</button>
+        </div>
+        <pre class="code-block-content collapsed" id="priorities-json">{{ issue_types_json }}</pre>
     </div>
 </body>
 </html>

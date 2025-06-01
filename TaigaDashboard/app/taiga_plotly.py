@@ -139,7 +139,7 @@ def filter_relevant_tasks(tasks, now=None):
 
 def get_dashboard_config_html():
     return f"""
-    <div class="dashboard-config-summary" style="margin-bottom: 2em;">
+    <div class="dashboard-config-summary" style="margin-bottom: 2em;text-align:center;">
       <button id="toggle-dashboard-config-btn" style="margin-bottom: 8px;">Show Dashboard Filters &#9660;</button>
       <div id="dashboard-config-table-container" style="display: none;">
         <div style="display: flex; justify-content: center;">
@@ -684,16 +684,22 @@ def get_task_assignment_heatmap_html(
     )
     return fig.to_html(include_plotlyjs="cdn", full_html=False)
 
-def get_tag_cloud_html(userstories, tasks, issues, min_font_size=14, max_font_size=48, max_tags=50):
+
+def get_tag_cloud_html(
+    userstories, tasks, issues, min_font_size=14, max_font_size=48, max_tags=50
+):
     """
     Returns an HTML div containing a Plotly tag cloud showing the most commonly used tags across
     user stories, tasks, and issues.
     """
+
     # --- Helper to extract tags from an object ---
     def extract_tags(obj):
         tags = obj.get("tags", [])
-        return [(t[0], t[1]) for t in tags if isinstance(t, (list, tuple)) and len(t) == 2]
-    
+        return [
+            (t[0], t[1]) for t in tags if isinstance(t, (list, tuple)) and len(t) == 2
+        ]
+
     # --- Gather tags (name, color) and count occurrences ---
     tag_counter = Counter()
     tag_color_lookup = {}
@@ -706,20 +712,24 @@ def get_tag_cloud_html(userstories, tasks, issues, min_font_size=14, max_font_si
     # --- Limit to most common tags for clarity ---
     most_common = tag_counter.most_common(max_tags)
     tags, counts = zip(*most_common) if most_common else ([], [])
-    
+
     # --- Normalize font size by count ---
     if counts:
         min_count, max_count = min(counts), max(counts)
+
         def font_size(count):
             if max_count == min_count:
                 return (min_font_size + max_font_size) / 2
-            return min_font_size + (count - min_count) * (max_font_size - min_font_size) / (max_count - min_count)
+            return min_font_size + (count - min_count) * (
+                max_font_size - min_font_size
+            ) / (max_count - min_count)
+
     else:
         font_size = lambda c: (min_font_size + max_font_size) / 2
 
     # --- Layout tags in a grid or random-ish positions ---
     n = len(tags)
-    grid_size = int(n ** 0.5) + 1
+    grid_size = int(n**0.5) + 1
     positions = [(i % grid_size, i // grid_size) for i in range(n)]
     random.shuffle(positions)
 
@@ -734,28 +744,31 @@ def get_tag_cloud_html(userstories, tasks, issues, min_font_size=14, max_font_si
 
     # --- Build Plotly figure ---
     fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=x,
-        y=y,
-        mode="text",
-        text=texts,
-        textfont=dict(
-            size=font_sizes,
-            color=colors,
-        ),
-        hovertext=[f"{tag}: {tag_counter[tag]} uses" for tag in tags],
-        hoverinfo="text"
-    ))
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=y,
+            mode="text",
+            text=texts,
+            textfont=dict(
+                size=font_sizes,
+                color=colors,
+            ),
+            hovertext=[f"{tag}: {tag_counter[tag]} uses" for tag in tags],
+            hoverinfo="text",
+        )
+    )
 
     fig.update_layout(
         xaxis=dict(showgrid=False, zeroline=False, visible=False),
         yaxis=dict(showgrid=False, zeroline=False, visible=False),
-        plot_bgcolor='white',
+        plot_bgcolor="white",
         title="Tag Cloud (by frequency)",
         margin=dict(l=20, r=20, t=60, b=20),
         height=max(350, 40 * grid_size),
     )
     return fig.to_html(include_plotlyjs="cdn", full_html=False)
+
 
 def get_tag_bar_chart_html(userstories, tasks, issues, max_tags=50):
     """
@@ -764,11 +777,14 @@ def get_tag_bar_chart_html(userstories, tasks, issues, max_tags=50):
     The highest bar (most common tag) is on the left.
     The y-axis is the number of occurrences.
     """
+
     # --- Helper to extract tags from an object ---
     def extract_tags(obj):
         tags = obj.get("tags", [])
-        return [(t[0], t[1]) for t in tags if isinstance(t, (list, tuple)) and len(t) == 2]
-    
+        return [
+            (t[0], t[1]) for t in tags if isinstance(t, (list, tuple)) and len(t) == 2
+        ]
+
     # --- Gather tags (name, color) and count occurrences ---
     tag_counter = Counter()
     tag_color_lookup = {}
@@ -794,7 +810,7 @@ def get_tag_bar_chart_html(userstories, tasks, issues, max_tags=50):
             text=counts,
             textposition="outside",
             hovertext=[f"{tag}: {count} uses" for tag, count in zip(tags, counts)],
-            hoverinfo="text"
+            hoverinfo="text",
         )
     )
     fig.update_layout(
@@ -806,6 +822,110 @@ def get_tag_bar_chart_html(userstories, tasks, issues, max_tags=50):
         bargap=0.25,
         xaxis=dict(tickangle=-40),
         autosize=True,
-        height=max(350, 18 * len(tags) + 150)
+        height=max(350, 18 * len(tags) + 150),
     )
     return fig.to_html(include_plotlyjs="cdn", full_html=False)
+
+
+def get_issue_type_severity_priority_donut_charts_html(
+    issues, types, severities, priorities
+):
+    """
+    Returns a single HTML string with three Plotly donut charts (open issues by type, severity, and priority) side by side.
+    Only issues whose status is NOT in ISSUE_DONE_STATUSES are counted.
+    Maps 'type', 'priority', and 'severity' integer ids to names using provided lists.
+    """
+
+    # Build id->name dicts for lookup
+    type_lookup = {t["id"]: t["name"] for t in types}
+    priority_lookup = {p["id"]: p["name"] for p in priorities}
+    severity_lookup = {s["id"]: s["name"] for s in severities}
+
+    def get_status(issue):
+        extra = issue.get("status_extra_info")
+        if isinstance(extra, dict) and "name" in extra:
+            return extra["name"]
+        status = issue.get("status")
+        if isinstance(status, dict):
+            return status.get("name", "")
+        return status or ""
+
+    # Only not-completed issues
+    active_issues = [
+        issue for issue in issues if get_status(issue) not in ISSUE_DONE_STATUSES
+    ]
+
+    def get_type(issue, fallback="Unknown"):
+        tid = issue.get("type")
+        return type_lookup.get(tid, fallback)
+
+    def get_priority(issue, fallback="Unknown"):
+        pid = issue.get("priority")
+        return priority_lookup.get(pid, fallback)
+
+    def get_severity(issue, fallback="Unknown"):
+        sid = issue.get("severity")
+        return severity_lookup.get(sid, fallback)
+
+    # Count by type, severity, and priority
+    type_counts = {}
+    severity_counts = {}
+    priority_counts = {}
+    for issue in active_issues:
+        t = get_type(issue)
+        s = get_severity(issue)
+        p = get_priority(issue)
+        type_counts[t] = type_counts.get(t, 0) + 1
+        severity_counts[s] = severity_counts.get(s, 0) + 1
+        priority_counts[p] = priority_counts.get(p, 0) + 1
+
+    palette = [
+        "#636efa",
+        "#ef553b",
+        "#00cc96",
+        "#ab63fa",
+        "#ffa15a",
+        "#19d3f3",
+        "#ff6692",
+        "#b6e880",
+    ]
+
+    def donut_fig(counts, title):
+        labels = list(counts.keys())
+        values = list(counts.values())
+        colors = palette * ((len(labels) // len(palette)) + 1)
+        fig = go.Figure(
+            go.Pie(
+                labels=labels,
+                values=values,
+                hole=0.5,
+                marker=dict(colors=colors[: len(labels)]),
+                textinfo="percent+label",
+                insidetextorientation="radial",
+            )
+        )
+        fig.update_layout(
+            title=title,
+            showlegend=True,
+            margin=dict(l=20, r=20, t=48, b=16),
+            height=350,
+            width=350,
+        )
+        return fig.to_html(
+            full_html=False, include_plotlyjs=False, config={"displayModeBar": False}
+        )
+
+    html_type = donut_fig(type_counts, "Open Issues by Type")
+    html_severity = donut_fig(severity_counts, "Open Issues by Severity")
+    html_priority = donut_fig(priority_counts, "Open Issues by Priority")
+
+    # Combine in a single responsive row
+    combined_html = f"""
+    <div style="display: flex; justify-content: center; align-items: flex-start; gap: 24px; flex-wrap: wrap;">
+      <div style="flex: 1 1 350px; min-width: 320px; max-width: 400px;">{html_type}</div>
+      <div style="flex: 1 1 350px; min-width: 320px; max-width: 400px;">{html_severity}</div>
+      <div style="flex: 1 1 350px; min-width: 320px; max-width: 400px;">{html_priority}</div>
+    </div>
+    """
+
+    return combined_html

@@ -122,3 +122,51 @@ class TaigaClient:
         response = self.session.get(url)
         response.raise_for_status()
         return response.json()
+
+    def get_users(self):
+        """
+        Retrieve the project users.
+        Returns: User details.
+        """
+        self.ensure_authenticated()
+        url = f"{self.base_url}/api/v1/users?project={self.projectid}"
+        print(f"Fetching users from: {url}") 
+        response = self.session.get(url)
+        response.raise_for_status()
+        return response.json()
+
+    def get_issue_types(self):
+        """
+        Retrieve the project issue types.
+        Returns: Issue Types details.
+        """
+        self.ensure_authenticated()
+        url = f"{self.base_url}/api/v1/issue-types?project={self.projectid}"
+        print(f"Fetching issue types from: {url}") 
+        response = self.session.get(url)
+        response.raise_for_status()
+        return response.json()
+
+    def get_severities(self):
+        """
+        Retrieve the project issue severities.
+        Returns: Severity details.
+        """
+        self.ensure_authenticated()
+        url = f"{self.base_url}/api/v1/severities?project={self.projectid}"
+        print(f"Fetching severities from: {url}") 
+        response = self.session.get(url)
+        response.raise_for_status()
+        return response.json()
+
+    def get_priorities(self):
+        """
+        Retrieve the project issue priorities.
+        Returns: Priority details.
+        """
+        self.ensure_authenticated()
+        url = f"{self.base_url}/api/v1/priorities?project={self.projectid}"
+        print(f"Fetching priorities from: {url}") 
+        response = self.session.get(url)
+        response.raise_for_status()
+        return response.json()
