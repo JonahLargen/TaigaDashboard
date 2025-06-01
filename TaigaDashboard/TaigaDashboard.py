@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request, abort
 from app.taiga_factory import create_taiga_client
 from app.taiga_plotly import (
     get_dashboard_config_html,
@@ -14,10 +14,13 @@ from app.taiga_plotly import (
 from dotenv import load_dotenv
 import json
 from flask_caching import Cache
+import os
 
 app = Flask(__name__)
 
 load_dotenv()  # loads .env file into environment variables
+
+API_KEY = os.environ.get("API_KEY")
 
 cache = Cache(config={"CACHE_TYPE": "simple"})
 cache.init_app(app)
@@ -26,6 +29,11 @@ cache.init_app(app)
 @app.route("/")
 @cache.cached(timeout=900)  # 900 seconds = 15 minutes
 def home():
+    if API_KEY:
+        req_key = request.args.get("key")
+        if not req_key or req_key != API_KEY:
+            abort(403)  # Forbidden
+
     client = create_taiga_client()
     epics = client.get_epics()
     userstories = client.get_stories()
