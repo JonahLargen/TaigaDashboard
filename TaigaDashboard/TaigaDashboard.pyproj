@@ -12,7 +12,7 @@
     <Name>TaigaDashboard</Name>
     <RootNamespace>TaigaDashboard</RootNamespace>
     <LaunchProvider>Web launcher</LaunchProvider>
-    <WebBrowserUrl>http://127.0.0.1:5000</WebBrowserUrl>
+    <WebBrowserUrl>http://127.0.0.1:5000?key=12345</WebBrowserUrl>
     <WebBrowserPort>
     </WebBrowserPort>
     <InterpreterId>MSBuild|venv|$(MSBuildProjectFullPath)</InterpreterId>
