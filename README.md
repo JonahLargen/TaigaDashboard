@@ -14,8 +14,13 @@ The dashboard currently has the following widgets/plotly graphs:
 - Open Issues Donut Charts
 - Blocked Items Table
 
+## Output
+
+<img src=".github/images/recording.gif" alt="Plot">
+
+
 ## Sample Graphs
 
-<img src="plot1.png" alt="Plot">
-<img src="plot2.png" alt="Plot">
-<img src="plot3.png" alt="Plot">
+<img src=".github/images/plot1.png" alt="Plot">
+<img src=".github/images/plot2.png" alt="Plot">
+<img src=".github/images/plot3.png" alt="Plot">
