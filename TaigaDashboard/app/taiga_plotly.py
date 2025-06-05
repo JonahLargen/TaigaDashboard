@@ -501,8 +501,7 @@ def get_task_status_breakdown_html(userstories, tasks, issues, sprints, title):
             marker=dict(color="green"),
             text=[str(n) if n > 0 else "0" for n in done_counts],
             textposition="inside",
-            insidetextanchor="middle",
-            textangle=0,
+            insidetextanchor="middle"
         ),
         go.Bar(
             x=group_labels,
@@ -511,8 +510,7 @@ def get_task_status_breakdown_html(userstories, tasks, issues, sprints, title):
             marker=dict(color="orange"),
             text=[str(n) if n > 0 else "0" for n in in_progress_counts],
             textposition="inside",
-            insidetextanchor="middle",
-            textangle=0,
+            insidetextanchor="middle"
         ),
         go.Bar(
             x=group_labels,
@@ -521,8 +519,7 @@ def get_task_status_breakdown_html(userstories, tasks, issues, sprints, title):
             marker=dict(color="lightgray"),
             text=[str(n) if n > 0 else "0" for n in new_counts],
             textposition="inside",
-            insidetextanchor="middle",
-            textangle=0,
+            insidetextanchor="middle"
         ),
     ]
 
@@ -530,10 +527,7 @@ def get_task_status_breakdown_html(userstories, tasks, issues, sprints, title):
         title=title,
         xaxis=dict(title="Sprint"),
         yaxis=dict(
-            title="Number of Items",
-            tickmode="linear",
-            tick0=0,
-            dtick=1,
+            title="Number of Items"
         ),
         barmode="stack",
         height=500 if len(group_labels) < 10 else 80 * len(group_labels),

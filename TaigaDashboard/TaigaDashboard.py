@@ -15,6 +15,9 @@ from dotenv import load_dotenv
 import json
 from flask_caching import Cache
 import os
+import time
+from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 app = Flask(__name__)
 
@@ -35,16 +38,26 @@ def home():
             abort(403)  # Forbidden
 
     client = create_taiga_client()
-    epics = client.get_epics()
-    userstories = client.get_stories()
-    tasks = client.get_tasks()
-    issues = client.get_issues()
-    sprints = client.get_sprints()
-    project = client.get_project()
-    users = client.get_users()
-    severities = client.get_severities()
-    priorities = client.get_priorities()
-    issue_types = client.get_issue_types()
+
+    start_timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    overall_start = time.perf_counter()
+    print(f"[{start_timestamp}] Starting full Taiga data fetch...")
+
+    all_data = fetch_all_parallel(client)
+    epics = all_data["epics"]
+    userstories = all_data["userstories"]
+    tasks = all_data["tasks"]
+    issues = all_data["issues"]
+    sprints = all_data["sprints"]
+    project = all_data["project"]
+    users = all_data["users"]
+    severities = all_data["severities"]
+    priorities = all_data["priorities"]
+    issue_types = all_data["issue_types"]
+
+    end_timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    overall_duration = time.perf_counter() - overall_start
+    print(f"[{end_timestamp}] Finished full Taiga data fetch in {overall_duration:.3f} seconds")
 
     project_name = project["name"]
     project_id = project["id"]
@@ -91,6 +104,32 @@ def home():
         issue_type_severity_priority_donut_charts_html=issue_type_severity_priority_donut_charts_html,
         blocked_items_table_html=blocked_items_table_html
     )
+
+def fetch_all_parallel(client):
+    tasks = {
+        "epics": lambda: client.get_epics(),
+        "userstories": lambda: client.get_stories(),
+        "tasks": lambda: client.get_tasks(),
+        "issues": lambda: client.get_issues(),
+        "sprints": lambda: client.get_sprints(),
+        "project": lambda: client.get_project(),
+        "users": lambda: client.get_users(),
+        "severities": lambda: client.get_severities(),
+        "priorities": lambda: client.get_priorities(),
+        "issue_types": lambda: client.get_issue_types(),
+    }
+    results = {}
+
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        future_to_name = {executor.submit(func): name for name, func in tasks.items()}
+        for future in as_completed(future_to_name):
+            name = future_to_name[future]
+            try:
+                results[name] = future.result()
+            except Exception as exc:
+                print(f"{name} generated an exception: {exc}")
+                results[name] = None
+    return results
 
 
 if __name__ == "__main__":
