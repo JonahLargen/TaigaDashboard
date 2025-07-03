@@ -30,7 +30,7 @@ cache.init_app(app)
 
 
 @app.route("/")
-@cache.cached(timeout=900)  # 900 seconds = 15 minutes
+@cache.cached(timeout=900, query_string=True)  # 900 seconds = 15 minutes, cache includes query string
 def home():
     if API_KEY:
         req_key = request.args.get("key")
