@@ -37,6 +37,11 @@ def home():
         if not req_key or req_key != API_KEY:
             abort(403)  # Forbidden
 
+    # Detect theme preference from query parameter
+    theme = request.args.get("theme", "light")
+    if theme not in ["light", "dark"]:
+        theme = "light"
+
     client = create_taiga_client()
 
     start_timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
@@ -63,31 +68,32 @@ def home():
     project_id = project["id"]
     logo = project["logo_small_url"]
     dashboard_config_html = get_dashboard_config_html()
-    epic_progress_bar_html = get_epic_progress_html(epics, userstories)
+    epic_progress_bar_html = get_epic_progress_html(epics, userstories, theme)
     user_story_status_breakdown_html = get_task_status_breakdown_html(
         userstories,
         [],
         [],
         sprints,
         "User Story Status Breakdown by Sprint (Requirement Items)",
+        theme
     )
     task_status_breakdown_html = get_task_status_breakdown_html(
-        [], tasks, issues, sprints, "Task/Issue Status Breakdown by Sprint (Work Items)"
+        [], tasks, issues, sprints, "Task/Issue Status Breakdown by Sprint (Work Items)", theme
     )
     task_assignment_heatmap_html = get_task_assignment_heatmap_html(
-        users, userstories, tasks, issues
+        users, userstories, tasks, issues, "status", theme
     )
     task_createdby_heatmap_html = get_task_createdby_heatmap_html(
-        users, userstories, tasks, issues
+        users, userstories, tasks, issues, "status", theme
     )
-    tag_cloud_html = get_tag_cloud_html(userstories, tasks, issues)
-    tag_bar_chart_html = get_tag_bar_chart_html(userstories, tasks, issues)
+    tag_cloud_html = get_tag_cloud_html(userstories, tasks, issues, 14, 48, 50, theme)
+    tag_bar_chart_html = get_tag_bar_chart_html(userstories, tasks, issues, 50, theme)
     issue_type_severity_priority_donut_charts_html = (
         get_issue_type_severity_priority_donut_charts_html(
-            issues, issue_types, severities, priorities
+            issues, issue_types, severities, priorities, theme
         )
     )
-    blocked_items_table_html = get_blocked_items_table_html(epics, userstories, tasks, issues)
+    blocked_items_table_html = get_blocked_items_table_html(epics, userstories, tasks, issues, theme)
 
     return render_template(
         "index.html",

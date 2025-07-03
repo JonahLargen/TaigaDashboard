@@ -4,21 +4,126 @@
     <title>Taiga Dashboard</title>
     <link rel="icon" type="image/png" href="{{ logo }}">
     <style>
+        :root {
+            /* Light theme variables */
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #ddd;
+            --code-bg: #f4f4f4;
+            --code-block-bg: #f8f8f8;
+            --code-header-bg: #f0f0f0;
+            --code-content-bg: #fafbfc;
+            --button-bg: #eee;
+            --button-hover-bg: #e0e0e0;
+            --button-border: #ccc;
+            --label-color: #555;
+            --shadow: rgba(0,0,0,0.10);
+        }
+
+        [data-theme="dark"] {
+            /* Dark theme variables */
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --border-color: #444;
+            --code-bg: #2d2d2d;
+            --code-block-bg: #252525;
+            --code-header-bg: #2a2a2a;
+            --code-content-bg: #222222;
+            --button-bg: #3a3a3a;
+            --button-hover-bg: #4a4a4a;
+            --button-border: #555;
+            --label-color: #ccc;
+            --shadow: rgba(0,0,0,0.3);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--code-header-bg);
+            padding: 8px 12px;
+            border-radius: 25px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 8px var(--shadow);
+        }
+
+        .theme-toggle-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        .theme-switch {
+            position: relative;
+            width: 50px;
+            height: 24px;
+        }
+
+        .theme-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .theme-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .theme-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .theme-slider {
+            background-color: #2196F3;
+        }
+
+        input:checked + .theme-slider:before {
+            transform: translateX(26px);
+        }
+    </style>
+    <style>
         pre {
-            background: #f4f4f4;
-            border: 1px solid #ddd;
+            background: var(--code-bg);
+            border: 1px solid var(--border-color);
             padding: 1em;
             overflow-x: auto;
         }
 
         h1, h2 {
             text-align: center;
+            color: var(--text-color);
         }
 
         .code-block-container {
-            border: 1px solid #ddd;
+            border: 1px solid var(--border-color);
             border-radius: 6px;
-            background: #f8f8f8;
+            background: var(--code-block-bg);
             font-family: Menlo, Monaco, "Consolas", "Liberation Mono", "Courier New", monospace;
             margin-bottom: 1em;
         }
@@ -27,7 +132,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #f0f0f0;
+            background: var(--code-header-bg);
             padding: 8px 12px;
             cursor: pointer;
             user-select: none;
@@ -36,25 +141,28 @@
             .code-block-header .toggle-btn {
                 font-weight: bold;
                 margin-right: 8px;
+                color: var(--text-color);
             }
 
             .code-block-header .copy-btn {
-                background: #eee;
-                border: 1px solid #ccc;
+                background: var(--button-bg);
+                border: 1px solid var(--button-border);
                 border-radius: 3px;
                 padding: 2px 8px;
                 font-size: 0.95em;
                 cursor: pointer;
+                color: var(--text-color);
             }
 
                 .code-block-header .copy-btn:hover {
-                    background: #e0e0e0;
+                    background: var(--button-hover-bg);
                 }
 
         .code-block-content {
             padding: 12px;
             overflow-x: auto;
-            background: #fafbfc;
+            background: var(--code-content-bg);
+            color: var(--text-color);
         }
 
             .code-block-content.collapsed {
@@ -73,7 +181,7 @@
         .toggle-switch-label {
             margin: 0 12px;
             font-weight: 600;
-            color: #555;
+            color: var(--label-color);
             transition: color 0.2s;
             cursor: pointer;
         }
@@ -145,6 +253,62 @@
     </style>
 
     <script>
+        // Theme management
+        function initializeTheme() {
+            // Check for theme from URL parameter first
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlTheme = urlParams.get('theme');
+            
+            // Check for saved theme preference or default to system preference
+            const savedTheme = localStorage.getItem('theme');
+            const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            const theme = urlTheme || savedTheme || systemTheme;
+            
+            applyTheme(theme);
+            updateThemeToggle(theme);
+            
+            // Save theme preference if it came from URL
+            if (urlTheme) {
+                localStorage.setItem('theme', urlTheme);
+            }
+            
+            // Listen for system theme changes
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+                if (!localStorage.getItem('theme')) {
+                    const newTheme = e.matches ? 'dark' : 'light';
+                    applyTheme(newTheme);
+                    updateThemeToggle(newTheme);
+                }
+            });
+        }
+
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+        }
+
+        function updateThemeToggle(theme) {
+            const toggle = document.getElementById('theme-toggle');
+            if (toggle) {
+                toggle.checked = theme === 'dark';
+            }
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            applyTheme(newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            // Reload the page with the theme parameter to apply theme to plotly charts
+            const url = new URL(window.location);
+            url.searchParams.set('theme', newTheme);
+            window.location.href = url.toString();
+        }
+
+        // Initialize theme when page loads
+        document.addEventListener('DOMContentLoaded', initializeTheme);
+
         function toggleCodeBlock(headerElem) {
             const codeBlock = headerElem.parentElement.querySelector('.code-block-content');
             const toggleBtn = headerElem.querySelector('.toggle-btn');
@@ -197,6 +361,16 @@
     </script>
 </head>
 <body>
+    <!-- Theme Toggle -->
+    <div class="theme-toggle">
+        <span class="theme-toggle-label">🌞</span>
+        <label class="theme-switch">
+            <input type="checkbox" id="theme-toggle" onchange="toggleTheme()">
+            <span class="theme-slider"></span>
+        </label>
+        <span class="theme-toggle-label">🌙</span>
+    </div>
+
     <h1>Taiga Dashboard</h1>
     <h2>{{ project_name }}</h2>
 

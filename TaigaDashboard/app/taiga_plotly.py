@@ -198,7 +198,7 @@ def get_dashboard_config_html():
     """
 
 
-def get_epic_progress_html(epics, userstories):
+def get_epic_progress_html(epics, userstories, theme="light"):
     """
     Takes Taiga API lists of epics and user stories.
     Returns HTML for a Plotly stacked horizontal bar chart showing epic progress:
@@ -320,6 +320,7 @@ def get_epic_progress_html(epics, userstories):
         barmode="stack",
         height=50 * max(1, len(y_labels)),
         margin=dict(l=40, r=40, t=40, b=40),
+        template="plotly_dark" if theme == "dark" else "plotly_white",
     )
     fig = go.Figure(data=[bar_done, bar_in_progress, bar_not_started], layout=layout)
     epic_progress_bar_html = plotly.io.to_html(
@@ -387,7 +388,7 @@ def format_date_range(start, end):
     return f"{start_dt.strftime('%m/%d/%y')} to {end_dt.strftime('%m/%d/%y')}"
 
 
-def get_task_status_breakdown_html(userstories, tasks, issues, sprints, title):
+def get_task_status_breakdown_html(userstories, tasks, issues, sprints, title, theme="light"):
     """
     Returns HTML for a stacked bar chart:
       - X-axis: sprint names (filtered: No Sprint, then active/future/completed ordered by start date)
@@ -533,13 +534,14 @@ def get_task_status_breakdown_html(userstories, tasks, issues, sprints, title):
         height=500 if len(group_labels) < 10 else 80 * len(group_labels),
         margin=dict(l=40, r=40, t=40, b=40),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        template="plotly_dark" if theme == "dark" else "plotly_white",
     )
     fig = go.Figure(data=traces, layout=layout)
     return plotly.io.to_html(fig, include_plotlyjs="cdn", full_html=False)
 
 
 def get_task_assignment_heatmap_html(
-    users, userstories, tasks, issues, column_metric="status"
+    users, userstories, tasks, issues, column_metric="status", theme="light"
 ):
     """
     Returns an HTML div containing a Plotly assignment heatmap based on users, userstories, tasks, and issues.
@@ -673,13 +675,13 @@ def get_task_assignment_heatmap_html(
         yaxis_title="Assignee",
         autosize=True,
         margin=dict(l=60, r=40, t=60, b=60),
-        template="simple_white",
+        template="simple_white" if theme == "light" else "plotly_dark",
         height=max(350, 30 * len(assignees) + 120),
     )
     return fig.to_html(include_plotlyjs="cdn", full_html=False)
 
 def get_task_createdby_heatmap_html(
-    users, userstories, tasks, issues, column_metric="status"
+    users, userstories, tasks, issues, column_metric="status", theme="light"
 ):
     """
     Returns an HTML div containing a Plotly heatmap based on creator (not assignee),
@@ -815,14 +817,14 @@ def get_task_createdby_heatmap_html(
         yaxis_title="Created By",
         autosize=True,
         margin=dict(l=60, r=40, t=60, b=60),
-        template="simple_white",
+        template="simple_white" if theme == "light" else "plotly_dark",
         height=max(350, 30 * len(creators) + 120),
     )
     return fig.to_html(include_plotlyjs="cdn", full_html=False)
 
 
 def get_tag_cloud_html(
-    userstories, tasks, issues, min_font_size=14, max_font_size=48, max_tags=50
+    userstories, tasks, issues, min_font_size=14, max_font_size=48, max_tags=50, theme="light"
 ):
     """
     Returns an HTML div containing a Plotly tag cloud showing the most commonly used tags across
@@ -898,7 +900,9 @@ def get_tag_cloud_html(
     fig.update_layout(
         xaxis=dict(showgrid=False, zeroline=False, visible=False),
         yaxis=dict(showgrid=False, zeroline=False, visible=False),
-        plot_bgcolor="white",
+        plot_bgcolor="white" if theme == "light" else "#1f1f1f",
+        paper_bgcolor="white" if theme == "light" else "#1f1f1f",
+        font_color="black" if theme == "light" else "white",
         title="Tag Cloud (by frequency)",
         margin=dict(l=20, r=20, t=60, b=20),
         height=max(350, 40 * grid_size),
@@ -906,7 +910,7 @@ def get_tag_cloud_html(
     return fig.to_html(include_plotlyjs="cdn", full_html=False)
 
 
-def get_tag_bar_chart_html(userstories, tasks, issues, max_tags=50):
+def get_tag_bar_chart_html(userstories, tasks, issues, max_tags=50, theme="light"):
     """
     Returns an HTML div containing a Plotly vertical bar chart showing the most commonly used tags across
     user stories, tasks, and issues. Each bar is colored using the tag's color from the schema.
@@ -959,12 +963,13 @@ def get_tag_bar_chart_html(userstories, tasks, issues, max_tags=50):
         xaxis=dict(tickangle=-40),
         autosize=True,
         height=max(350, 18 * len(tags) + 150),
+        template="plotly_dark" if theme == "dark" else "plotly_white",
     )
     return fig.to_html(include_plotlyjs="cdn", full_html=False)
 
 
 def get_issue_type_severity_priority_donut_charts_html(
-    issues, types, severities, priorities
+    issues, types, severities, priorities, theme="light"
 ):
     """
     Returns a single HTML string with three Plotly donut charts (open issues by type, severity, and priority) side by side.
@@ -1046,6 +1051,7 @@ def get_issue_type_severity_priority_donut_charts_html(
             margin=dict(l=20, r=20, t=48, b=16),
             height=350,
             width=350,
+            template="plotly_dark" if theme == "dark" else "plotly_white",
         )
         return fig.to_html(
             full_html=False, include_plotlyjs=False, config={"displayModeBar": False}
@@ -1066,7 +1072,7 @@ def get_issue_type_severity_priority_donut_charts_html(
 
     return combined_html
 
-def get_blocked_items_table_html(epics, user_stories, issues, tasks):
+def get_blocked_items_table_html(epics, user_stories, issues, tasks, theme="light"):
     """
     Returns HTML for a Plotly table listing all blocked items (user stories, tasks, issues, epics),
     showing type, reference/subject, assignee, blockers note, and age (in days).
@@ -1146,5 +1152,6 @@ def get_blocked_items_table_html(epics, user_stories, issues, tasks):
         title="Blocked Items",
         margin=dict(l=10, r=10, t=48, b=10),
         height=70 + len(blocked_items) * 64,  # More room per row
+        template="plotly_dark" if theme == "dark" else "plotly_white",
     )
     return fig.to_html(full_html=False, include_plotlyjs=False, config={"displayModeBar": False})
